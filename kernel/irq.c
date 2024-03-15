@@ -1,5 +1,5 @@
-#include "../drivers/io.h"
-#include "include/system.h"
+#include "include/io.h"
+#include "include/idt.h"
 
 // Prototypes for the frist 16 IRQ based ISRs defined in kernel_entry.asm.
 extern void irq0();

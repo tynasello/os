@@ -1,5 +1,5 @@
-#include "../kernel/include/system.h"
-#include "io.h"
+#include "include/io.h"
+#include "include/system.h"
 
 #define VIDEO_MEMORY                                                           \
   0xb8000 // Address of memory-mapped screen device (VGA text mode)

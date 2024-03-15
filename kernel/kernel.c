@@ -1,5 +1,9 @@
-#include "../drivers/screen.h"
-#include "include/system.h"
+#include "include/idt.h"
+#include "include/irq.h"
+#include "include/isr.h"
+#include "include/kb.h"
+#include "include/screen.h"
+#include "include/timer.h"
 
 void _start() {
   print("\n");

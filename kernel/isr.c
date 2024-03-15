@@ -1,5 +1,5 @@
-#include "../drivers/screen.h"
-#include "include/system.h"
+#include "include/screen.h"
+#include "include/idt.h"
 
 // Prototypes for the frist 32 ISRs defined in kernel_entry.asm.
 // The first 32 entries in the IDT are reserved by Intel, and are designed to

@@ -1,6 +1,6 @@
-#include "../drivers/io.h"
-#include "../drivers/screen.h"
-#include "include/system.h"
+#include "include/io.h"
+#include "include/screen.h"
+#include "include/irq.h"
 
 // I/O port for the keyboard data register. Anything the the keyboard is trying
 // to send to the computer is sent through the data register. The keyboard

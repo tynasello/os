@@ -1,5 +1,5 @@
-C_SOURCES = $(wildcard kernel/*.c drivers/*.c)
-HEADERS = $(wildcard kernel/*.h drivers/*.h)
+C_SOURCES = $(wildcard kernel/*.c)
+HEADERS = $(wildcard kernel/include/*.h)
 OBJ = ${C_SOURCES:.c=.o}
 
 # Default build target
@@ -43,4 +43,4 @@ kernel/kernel.bin: kernel/kernel_entry.o ${OBJ}
 
 clean:
 	rm -fr *.bin *.o os-image
-	rm -fr kernel/*.o boot/*.bin drivers/*.o
+	rm -fr kernel/*.o boot/*.bin
