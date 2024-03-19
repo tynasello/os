@@ -1,10 +1,12 @@
-gdt_start:; Start address of the GDT, defined below
+[bits 16]
 
-gdt_null: ; Manditory null descriptor
+GDT_START:; Start address of the GDT, defined below
+
+GDT_NULL: ; Manditory null descriptor
   dd 0x0  ; dd <=> display double word (32 bits); dw <=> display word (16 bits)
   dd 0x0
 
-gdt_code: ; Code segment descriptor
+GDT_CODE: ; Code segment descriptor
   ; Base        <=> 0x0    
   ; Limit       <=> 0xfffff (granularity set as 1 multiples by 4K, become 0xfffff000)
   ; Type flags  <=> 1010b   <=> 1(code) 0(conforming) 1(readable) 0(accessed)
@@ -18,7 +20,7 @@ gdt_code: ; Code segment descriptor
   db 0x0        ; Base (high)   (bits 56-63)
 
 
-gdt_data: ; Data segment descriptor
+GDT_DATA: ; Data segment descriptor
   ; Same as code segment descriptor except for the type flags:
   ; Type flags  <=> 0010b   <=> 0(code) 0(expand down) 1(writable) 0(accessed)
   dw 0xffff     
@@ -29,15 +31,15 @@ gdt_data: ; Data segment descriptor
   db 0x0       
 
 
-gdt_end:  ; End address of the GDT, defined above
+GDT_END:  ; End address of the GDT, defined above
 
 
 ; GDT descriptor is what the CPU needs: 
 ; GDT size (bits 0-15), GDT address (bits 16-47)
-gdt_descriptor: 
-  dw gdt_end - gdt_start - 1      ; Size is always one less than true size?
-  dd gdt_start
+GDT_DESCRIPTOR: 
+  dw GDT_END - GDT_START - 1      ; Size is always one less than true size?
+  dd GDT_START
 
 ; Define offsets (indexes) into GDT that will be used when setting segment registers
-CODE_SEG equ gdt_code - gdt_start ; equ defines symbolic constants or aliases and is a feature provided by the assembler
-DATA_SEG equ gdt_data - gdt_start ; 0x0 -> NULL; 0x08 -> CODE; 0x10 -> DATA 
+CODE_SEG equ GDT_CODE - GDT_START ; equ defines symbolic constants or aliases and is a feature provided by the assembler
+DATA_SEG equ GDT_DATA - GDT_START ; 0x0 -> NULL; 0x08 -> CODE; 0x10 -> DATA 

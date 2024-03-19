@@ -1,11 +1,12 @@
+CC = i686-elf-gcc
+NASM = nasm
+
 C_SOURCES = $(wildcard kernel/*.c)
 HEADERS = $(wildcard kernel/include/*.h)
 OBJ = ${C_SOURCES:.c=.o}
 
-# Default build target
 all: target/os-image
 
-# Run qemu to simulate booting of the os disk image
 run: all
 	qemu-system-i386 -drive format=raw,file=target/os-image 
 
@@ -14,33 +15,23 @@ run: all
 target/os-image: boot/boot_sect.bin kernel/kernel.bin boot/pad.bin
 	cat $^ > $@
 
-# Build the binary of the kernel by linking:
-# 1) the kernel entry, which jumps to _start in the kernel
-# 2) the compiled kernel code  
-# - -Ttext 0x1000 offsets label addresses in kernel code to absolute memory addresses (kernel code is loaded at 0x1000 in physcial memory)
-# - -oformat binary produces a raw binary format
+# Kernel binary
+# - ffrestanding implies no standard library exists (only a subset of C library with #define and typedefs only).
+#   This is important as the compiler is building a kernel rather than user-space program. 
+# - nostdlib removes some start files that should only be for user space programs.
+# - lgcc expands to the full path of libgcc that only the compiler knows about. It was originally excluded by nostdlib.
 kernel/kernel.bin: kernel/kernel_entry.o ${OBJ}
-	i686-elf-ld -Ttext 0x1000 --oformat binary $^ -o $@
+	$(CC) -T linker.ld -ffreestanding -Wall -O0 -nostdlib $^ -o $@ -lgcc
 
-# Cross-compile kernel code to elf object files for i386 architecture (32-bit)
-# - -ffrestanding implies no standard library exists (only a subset of C library with #define and typedefs only).
-#  	This is important as it lets the compiler know it is building a kernel rather than user-space program. 
-#  	The documentation for GCC says you are required to implement the functions memset, memcpy, memcmp and memmove yourself in freestanding mode.
-# - -lgcc includes libgcc, which implements various runtime routines that the cross-compiler depends on.
 %.o: %.c ${HEADERS}
-	i686-elf-gcc -ffreestanding -Wall -O -c $< -o $@ -lgcc
+	$(CC) -ffreestanding -Wall -O0 -c $< -o $@ -lgcc
 
-# Assemble the kernel entry 
-# - -f elf produces elf object file
-%.o: %.asm
-	nasm $< -f elf -o $@
+kernel/kernel_entry.o: kernel/kernel_entry.asm
+	${NASM} $< -f elf -o $@
 
-# Build boot sector binary
-# - -f bin produces raw binary
-# - -I specifies includes directory
+# Boot sector 
 %.bin: %.asm
-	nasm $< -f bin -I './boot/' -o $@
+	${NASM} $< -f bin -i 'boot' -o $@
 
 clean:
-	rm -fr *.bin *.o os-image
-	rm -fr kernel/*.o boot/*.bin
+	rm -fr target/* kernel/*.bin kernel/*.o boot/*.bin

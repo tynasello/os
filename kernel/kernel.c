@@ -5,7 +5,7 @@
 #include "include/screen.h"
 #include "include/timer.h"
 
-void _start() {
+void kmain() {
   print("\n");
   print("Entered into 32-bit Protected Mode.\n");
   print("Kernel loaded. Execution started at _start.\n");

@@ -1,4 +1,16 @@
-disk_load:
+[bits 16]
+
+
+;----------------------
+; Data section
+;----------------------
+
+DISK_ERROR_MSG:
+  db 'Disk read error!',0
+
+;----------------------
+
+DISK_LOAD:
   push dx
 
   mov ah, 0x02      ; Select BIOS read sector function
@@ -9,17 +21,15 @@ disk_load:
 
   int 0x13          ; BIOS interrupt for disk access
 
-  jc disk_error     ; A set carry flag indicates error
+  jc DISK_ERROR     ; A set carry flag indicates error
 
   pop dx
   cmp dh, al        ; al <=> number of sectors read; dh <=> number of sectors requested to be read
-  jne disk_error 
+  jne DISK_ERROR 
   ret
 
-disk_error:
+DISK_ERROR:
   mov bx, DISK_ERROR_MSG
-  call print_string
+  call PRINT_STRING
   jmp $
 
-DISK_ERROR_MSG:
-  db 'Disk read error!',0
