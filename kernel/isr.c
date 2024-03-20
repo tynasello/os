@@ -1,9 +1,12 @@
 #include "include/screen.h"
 #include "include/idt.h"
 
-// Prototypes for the frist 32 ISRs defined in kernel_entry.asm.
-// The first 32 entries in the IDT are reserved by Intel, and are designed to
-// service exceptions.
+/*
+
+The frist 32 ISR defined in kernel_entry.asm.
+Interrupt numbers 0-31 are reserved by Intel, and are designed to service exceptions.
+
+*/
 extern void isr0();
 extern void isr1();
 extern void isr2();
@@ -37,16 +40,24 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 
-// exception_messages[interrupt number] stores the corresponding exception
-// message
+/*
+ 
+Mapping from interrupt number to exception message
+
+*/
 char *exception_messages[32];
 
-// Set the first 32 entries in the IDT to their respective ISRs
+/*
+ 
+Initialize exception based ISRs:
+Set entries 0-32 in the IDT to exception based ISRs.
+
+*/
 void isrs_init() {
   unsigned short ds = 0x08;
-  unsigned short common_flags =
-      0x8E; // 10001110: descriptor is valid (bit 7), DPL is ring 0 (bits 5-6),
-            // bit 4 is always 0, gate type is 32-bit interrupt gate (bits 0-3)
+  unsigned short common_flags = 0x8E; // 10001110: 
+                                      // descriptor is valid (bit 7), DPL is ring 0 (bits 5-6),
+                                      // bit 4 is always 0, gate type is 32-bit interrupt gate (bits 0-3).
 
   idt_set_entry(0, (unsigned int)isr0, ds, common_flags);
   idt_set_entry(1, (unsigned int)isr1, ds, common_flags);
@@ -115,36 +126,26 @@ void isrs_init() {
   exception_messages[31] = "Reserved";
 }
 
-// Generic fault handler called by all exception based ISRs
+/*
+ 
+Generic fault handler called by all exception based ISRs.
+For now, display a message and halt the CPU.
+
+*/
 void isr_fault_handler(struct regs *r) {
-  // If interrupt is raised for an exception, display a message and just halt
-  // the CPU for now
   if (r->int_no < 32) {
     print("System Halted!\n");
 
-    print("--------------------\n");
-
     print("Exception: ");
     print(exception_messages[r->int_no]);
-    print("\n");
-
-    print("Error Code: ");
+    print("\nError Code: ");
     print_hex(r->err_code);
-    print("\n");
-
-    print("IP: ");
+    print("\nIP: ");
     print_hex(r->eip);
-    print("\n");
-
-    print("Data Segment: ");
+    print("\nData Segment: ");
     print_hex(r->ds);
-    print("\n");
-
-    print("Code Segment: ");
+    print("\nCode Segment: ");
     print_hex(r->cs);
-    print("\n");
-
-    print("--------------------\n");
 
     for (;;) {
     }

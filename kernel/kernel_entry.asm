@@ -1,6 +1,6 @@
 [bits 32]
 
-global idt_load     ; Function is declared in idt.c as "extern void idt_load();"
+global idt_load     ; Function is defined in idt.c as "extern void idt_load();"
 global isr0         ; ISR symbols used in isr.c
 global isr1
 global isr2
@@ -330,21 +330,21 @@ irq15:                  ; Secondary ATA Hard Disk
 ;----------------------
 
 isr_fault_wrapper:
-    pusha               ; Save processor state
+    pusha                           ; Save processor state
     push ds
     push es
     push fs
     push gs
-    mov ax, 0x10        ; Load the Kernel Data Segment descriptor
+    mov ax, 0x10                    ; Load the Kernel Data Segment descriptor
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov eax, esp        ; Push a ptr to the stack for the fault handler to use
+    mov eax, esp                    ; Push a ptr to the stack for the fault handler to use
     push eax
-    mov eax, isr_fault_handler ; Call the generic fault handler in isr.c
+    mov eax, isr_fault_handler      ; Call the generic fault handler in isr.c
     call eax       
-    pop eax             ; Restore stack, popping registers in the reverse order that they were pushed
+    pop eax                         ; Restore stack, popping registers in the reverse order that they were pushed
     pop gs
     pop fs
     pop es

@@ -8,7 +8,7 @@
 void kmain() {
   print("\n");
   print("Entered into 32-bit Protected Mode.\n");
-  print("Kernel loaded. Execution started at _start.\n");
+  print("Kernel loaded. Execution started at kmain.\n");
 
   idt_init();
   print("IDT initialized and loaded.\n");

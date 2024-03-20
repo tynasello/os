@@ -4,14 +4,8 @@
 ; *Useful BIOS routines are no longer available in PM.*
 ; Must interact with VGA hardware explicitly.
 
-;----------------------
-; Data section
-;----------------------
-
 VIDEO_MEMORY equ 0xb8000 ; VGA hardware is memory mapped to this address
 WHITE_ON_BLACK equ 0x0f
-
-;----------------------
 
 PRINT_STRING_PM:
 	pusha

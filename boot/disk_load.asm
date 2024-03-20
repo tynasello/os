@@ -1,14 +1,7 @@
 [bits 16]
 
-
-;----------------------
-; Data section
-;----------------------
-
 DISK_ERROR_MSG:
   db 'Disk read error!',0
-
-;----------------------
 
 DISK_LOAD:
   push dx

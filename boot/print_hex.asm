@@ -1,13 +1,7 @@
 [bits 16]
 
-;----------------------
-; Data section
-;----------------------
-
 HEX_OUT:
   db '0x0000',
-
-;----------------------
 
 ; Print the hex value in bx register
 PRINT_HEX:

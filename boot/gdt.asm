@@ -1,12 +1,12 @@
 [bits 16]
 
-GDT_START:; Start address of the GDT, defined below
+GDT_START:      ; Start address of the GDT, defined below
 
-GDT_NULL: ; Manditory null descriptor
-  dd 0x0  ; dd <=> display double word (32 bits); dw <=> display word (16 bits)
+GDT_NULL:       ; Manditory null descriptor
+  dd 0x0        ; dd <=> display double word (32 bits); dw <=> display word (16 bits)
   dd 0x0
 
-GDT_CODE: ; Code segment descriptor
+GDT_CODE:       ; Code segment descriptor
   ; Base        <=> 0x0    
   ; Limit       <=> 0xfffff (granularity set as 1 multiples by 4K, become 0xfffff000)
   ; Type flags  <=> 1010b   <=> 1(code) 0(conforming) 1(readable) 0(accessed)

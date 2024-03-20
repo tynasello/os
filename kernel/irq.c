@@ -1,7 +1,11 @@
 #include "include/io.h"
 #include "include/idt.h"
 
-// Prototypes for the frist 16 IRQ based ISRs defined in kernel_entry.asm.
+/*
+ 
+The IRQ based ISRs defined in kernel_entry.asm.
+
+*/
 extern void irq0();
 extern void irq1();
 extern void irq2();
@@ -19,59 +23,69 @@ extern void irq13();
 extern void irq14();
 extern void irq15();
 
-// I/O ports for the Programmable Interrupt Controllers (PIC or 8259)
-// The function of the 8259A is to manage hardware interrupts and send them to
-// the appropriate system interrupt. Without a PIC, you would have to poll all
-// the devices in the system to see if they want to do anything (signal an
-// event), but with a PIC, your system can run along nicely until such time that
-// a device wants to signal an event.
-// Two PIC chips exist for managing IRQs, one is a master controller, and the
-// other is a slave PIC connected to IRQ2 on the master. The master controller
-// is connected directly to the processor to send signals.
+/*
+ 
+I/O ports for the Programmable Interrupt Controllers (PIC or 8259).
+The function of the 8259A is to manage hardware interrupts and send them to the appropriate system interrupt.
+Two PIC chips exist for managing IRQs: a master, and a slave. 
+The slave controller is connected to IRQ2 of the master. 
+The master controller is connected directly to the processor to send signals.
 
-// I/O control port for the master PIC
-#define MASTER_CMD 0x20
-// I/O data port for the master PIC
-#define MASTER_DATA 0x21
-#define SLAVE_CMD 0xA0
-#define SLAVE_DATA 0xA1
+*/
+#define MASTER_CMD_PORT 0x20
+#define MASTER_DATA_PORT 0x21
+#define SLAVE_CMD_PORT 0xA0
+#define SLAVE_DATA_PORT 0xA1
 
-// PIC commands:
-// End of interrupt (EOI) command used to notify PICs when interrupts have been
-// serviced
+/*
+ 
+PIC commands:
+
+End of interrupt (EOI) command used to notify PICs when interrupts have been serviced.
+
+Initialize command makes the PIC wait for 3 extra "initialisation words" on
+the data port. These bytes give the PIC: 1) its vector offset, 2) tell it how
+to wire master/slaves, 3) gives additional information about the environment.
+
+PIC will add the apporpriate offset to the internal IRQ number to get the correct system interrupt number.
+
+Additional info about environment (use 8086 mode instead of 8080)
+
+*/
 #define EOI 0x20
-// Initialize command makes the PIC wait for 3 extra "initialisation words" on
-// the data port. These bytes give the PIC: 1) its vector offset, 2) tell it how
-// to wire master/slaves, 3) gives additional information about the environment
 #define INIT 0x11
-// PIC will add the offset to the internal IRQ number to get the correct system
-// number
 #define MASTER_OFFSET 0x20
 #define SLAVE_OFFSET 0x28
-// Additional info about environment (use 8086 mode instead of 8080)
 #define PIC_ENV 0x01
 
-// The PIC initially maps IRQs 0-7 to interrupt numbers 8-15 and IRQs 8-15 to
-// interrupt numbers 112-120. This could cause conflicts, and so will be
-// remapped to interrupt numbers 32-47, just after the first 32 exception based
-// interrupts. The only way to change the vector offsets used by the 8259 is
-// to re-initialize it.
+/*
+ 
+Remap the PIC IRQ numbers to 32-47.
+The PIC initially maps IRQs 0-7 to interrupt numbers 8-15 and IRQs 8-15 to interrupt numbers 112-120.
+This will cause conflicts since our IDT already has interrupt numebers 0-31 filled for exception based interrupts. 
+The only way to change the vector offsets used by the PIC is to re-initialize it.
+
+*/
 void pic_remap() {
-  port_byte_out(MASTER_CMD, INIT);
-  port_byte_out(SLAVE_CMD, INIT);
-  port_byte_out(MASTER_DATA, MASTER_OFFSET);
-  port_byte_out(SLAVE_DATA, SLAVE_OFFSET);
-  port_byte_out(MASTER_DATA, 0x04); // Notify master that slave is at IRQ2
-  port_byte_out(SLAVE_DATA, 0x02);  // Notify slave of its cascade identity
-  port_byte_out(MASTER_DATA, PIC_ENV);
-  port_byte_out(SLAVE_DATA, PIC_ENV);
-  port_byte_out(MASTER_DATA, 0x0); // Clear controller interrupt masks
-  port_byte_out(SLAVE_DATA, 0x0);  //   (all IRQs will be serviced)
+  port_byte_out(MASTER_CMD_PORT, INIT);
+  port_byte_out(SLAVE_CMD_PORT, INIT);
+  port_byte_out(MASTER_DATA_PORT, MASTER_OFFSET);  // Change IRQ numbers of the PIC
+  port_byte_out(SLAVE_DATA_PORT, SLAVE_OFFSET);    // ^
+  port_byte_out(MASTER_DATA_PORT, 0x04);           // Notify master that slave is at IRQ2
+  port_byte_out(SLAVE_DATA_PORT, 0x02);            // Notify slave of its cascade identity
+  port_byte_out(MASTER_DATA_PORT, PIC_ENV);
+  port_byte_out(SLAVE_DATA_PORT, PIC_ENV);
+  port_byte_out(MASTER_DATA_PORT, 0x0);            // Clear controller interrupt masks
+  port_byte_out(SLAVE_DATA_PORT, 0x0);             //  ^(all IRQs will be serviced)
 }
 
-// Initialize IRQ based IRSs:
-// 1) remap the PIC to use interrups numbers 32-47
-// 2) set entries 32-47 in the IDT to IRQ based ISRs 0-15.
+/*
+ 
+Initialize IRQ based IRSs:
+1) remap the PIC to use interrups numbers 32-47
+2) set entries 32-47 in the IDT to IRQ based ISRs 0-15.
+
+*/
 void irqs_init() {
   pic_remap();
 
@@ -96,31 +110,32 @@ void irqs_init() {
   idt_set_entry(47, (unsigned int)irq15, ds, common_flags);
 }
 
-// Array of function pointers mapping IRQ number to custom IRQ handler functions
+/*
+ 
+An array of function pointers mapping IRQ numbers to handler functions
+
+*/
 void *irq_handlers[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 void irq_install_handler(int irq_no, void (*handler)(struct regs *r)) {
-  if (irq_no >= 0 && irq_no <= 15) {
+  if (irq_no >= 0 && irq_no <= 15) { // There are only 16 different IRQs
     irq_handlers[irq_no] = handler;
   }
 }
 
 void irq_handler(struct regs *r) {
-
-  void (*handler)(struct regs *r); // Blank fn ptr
-
-  // Run the custom handler for this IRQ if it has been defined
-  handler = irq_handlers[r->int_no - 32];
+  void (*handler)(struct regs *r); // Blank function pointer
+  handler = irq_handlers[r->int_no - 32]; 
   if (handler) {
     handler(r);
   }
-
-  // The CPU tells the right PIC that the interrupt is complete by writing the
-  // byte 0x20 (EOI) to the command port for that PIC. In the case that the
-  // interrupt number is greater than 40 (IRQ 8 or higher), then the slave must
-  // be notified as well as the master.
+  /*
+  The CPU tells the PIC that the interrupt is complete by writing an EOI byte to the command port. 
+  In the case that the interrupt number is greater than 40 (IRQ 8 or higher), then the slave must
+  be notified as well as the master.
+  */
   if (r->int_no >= 40) {
-    port_byte_out(SLAVE_CMD, EOI);
+    port_byte_out(SLAVE_CMD_PORT, EOI);
   }
-  port_byte_out(MASTER_CMD, EOI);
+  port_byte_out(MASTER_CMD_PORT, EOI);
 }
