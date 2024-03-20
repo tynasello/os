@@ -1,18 +1,5 @@
 [bits 32]
 
-;----------------------
-;
-; Kernel entry point
-;
-;----------------------
-
-_start:
-    extern kmain    ; Declare the entry point that exists in kernel.c
-    call kmain 
-    jmp $
-
-;----------------------
-
 global idt_load     ; Function is declared in idt.c as "extern void idt_load();"
 global isr0         ; ISR symbols used in isr.c
 global isr1
@@ -66,6 +53,18 @@ global irq15
 extern idtp
 extern isr_fault_handler    ; Generic fault handler written in isr.c
 extern irq_handler          ; Generic irq handler written in irq.c
+
+;----------------------
+;
+; Kernel entry point
+;
+;----------------------
+section .text
+
+_start:
+    extern kmain    ; Declare the entry point that exists in kernel.c
+    call kmain 
+    jmp $
 
 ;----------------------
 ;

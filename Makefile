@@ -1,4 +1,5 @@
 CC = i686-elf-gcc
+CFLAGS = -ffreestanding -Wall -O0 -nostdlib 
 NASM = nasm
 
 C_SOURCES = $(wildcard kernel/*.c)
@@ -21,10 +22,10 @@ target/os-image: boot/boot_sect.bin kernel/kernel.bin boot/pad.bin
 # - nostdlib removes some start files that should only be for user space programs.
 # - lgcc expands to the full path of libgcc that only the compiler knows about. It was originally excluded by nostdlib.
 kernel/kernel.bin: kernel/kernel_entry.o ${OBJ}
-	$(CC) -T linker.ld -ffreestanding -Wall -O0 -nostdlib $^ -o $@ -lgcc
+	$(CC) -T linker.ld $(CFLAGS) $^ -o $@ -lgcc
 
 %.o: %.c ${HEADERS}
-	$(CC) -ffreestanding -Wall -O0 -c $< -o $@ -lgcc
+	$(CC) $(CFLAGS) -c  $< -o $@ -lgcc
 
 kernel/kernel_entry.o: kernel/kernel_entry.asm
 	${NASM} $< -f elf -o $@
