@@ -25,7 +25,7 @@ Add the timer handler to the IRQ based interrupt mapping
 
 */
 void timer_install() { 
-  irq_install_handler(0, timer_handler); 
+  // irq_install_handler(0, timer_handler); 
 }
 
 /*
