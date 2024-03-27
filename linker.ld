@@ -11,19 +11,19 @@ SECTIONS
 	}
  
 	/* Read-only data. */
-	.rodata BLOCK(4K) : ALIGN(4K)
+	.rodata BLOCK(0x1000) : ALIGN(0x1000)
 	{
 		*(.rodata)
 	}
  
 	/* Read-write data (initialized) */
-	.data BLOCK(4K) : ALIGN(4K)
+	.data BLOCK(0x1000) : ALIGN(0x1000)
 	{
 		*(.data)
 	}
  
 	/* Read-write data (uninitialized) and stack */
-	.bss BLOCK(4K) : ALIGN(4K)
+	.bss BLOCK(0x1000) : ALIGN(0x1000)
 	{
 		*(COMMON)
 		*(.bss)

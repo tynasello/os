@@ -1,4 +1,13 @@
+/*
+--------------------- 
+
+Interrupt Descriptor Table
+
+--------------------- 
+*/ 
+
 #include "include/system.h"
+#include "stdint.h"
 
 /* Defined in kernel_entry.asm */
 extern void idt_load();
@@ -51,7 +60,7 @@ Initialize IDT pointer, and load IDT initialized with zeroes
 */
 void idt_init() {
   idtp.size = (sizeof(struct idt_entry) * 256) - 1;
-  idtp.offset = (unsigned int)&idt;
+  idtp.offset = (uintptr_t)&idt;
   mem_set((unsigned char *)&idt, 0, sizeof(struct idt_entry) * 256); 
   idt_load();
 }

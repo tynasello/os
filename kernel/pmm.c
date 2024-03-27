@@ -1,43 +1,56 @@
+/* 
+---------------------
+
+Physical Memory Manager
+- Handles RAM allocation through a page frame allocater
+
+--------------------- 
+*/
+
 #include "include/screen.h"
 #include "include/system.h"
 #include <stdint.h>
 
-/* Retrieved from linker. Memory after this point is free to use. */
-extern uint32_t endkernel;
-uint32_t phys_start;
+#define FREE_START 0x100000
+#define NUMFRAMES 3584 // 14 MiB (0x00100000-0x00EFFFFF)
+#define FREE 1
+#define TAKEN 0
+#define FRAME_SIZE 4096
 
-/*
-Each byte represents status of 8 pages
-0 = taken
-1 = free
-*/
-unsigned char frame_map[128]; 
+/* Set in linker script */
+extern uint32_t endkernel;
+
+/* Bit map where each byte represents status of 8 contiguous pages */
+unsigned char frame_map[NUMFRAMES]; 
 
 void pmm_init() {
-  phys_start = (int)&endkernel - ((int)&endkernel % 4096) + 4096;
-  mem_set(frame_map, 0xff, 128);
+  mem_set(frame_map, 0xff, NUMFRAMES/8);
 }
 
 void print_endkernel(){
-  print_hex((int)&endkernel);
+  print_hex((uintptr_t)&endkernel);
 }
 
-int kalloc_frame(){
+/* 
+Current method used for simplicity.
+Alternative is to use a stack structure.
+*/
+uintptr_t alloc_frame(){
   int i = 0;
-  while(frame_map[i] == 0){
-    if(i == 128){
-      return -1;
+  while(frame_map[i] == TAKEN){
+    if(i == NUMFRAMES){
+      return 0;
     }
     i++;
   }
   int j = 0;
-  while((frame_map[i] & (1 << j)) == 0){
+  while((frame_map[i] & (FREE << j)) == TAKEN){
     if(j == 8){
-      return -1;
+      return 0;
     }
     j++;
   }
 
-  frame_map[i] = frame_map[i] & ~(1 << j);
-  return phys_start + (i * 8 + j) * 4096;
+  frame_map[i] = frame_map[i] & ~(FREE << j);
+  return FREE_START + (i * 8 + j) * FRAME_SIZE;
 }

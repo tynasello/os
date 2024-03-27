@@ -1,5 +1,6 @@
 #include "include/io.h"
 #include "include/system.h"
+#include <stdint.h>
 
 /*
 
@@ -103,22 +104,13 @@ void clear_screen() {
   set_cursor(get_offset( 2, 0)); // Should be 0 not 2; using 2 because qemu window too small
 }
 
-void print_int(int num) {
-  char buffer[10]; // Buffer to store the converted string. Assume 32-bit integer, null terminator, and sign.
-  int is_negative = 0; // Handle negative numbers
-  if (num < 0) {
-    is_negative = 1;
-    num = -num;
-  }
+void print_int(uint32_t num) {
+  char buffer[11]; // Buffer to store the converted string. Assume 32-bit integer and null terminator
   int i = 0;
   do {
     buffer[i++] = '0' + num % 10;
     num /= 10;
   } while (num > 0);
-
-  if (is_negative) {
-    buffer[i++] = '-';
-  }
   buffer[i] = '\0'; 
   int start = 0;
   int end = i - 1;
@@ -132,8 +124,8 @@ void print_int(int num) {
   print(buffer);
 }
 
-void print_hex(int num) {
-  char buffer[10]; // Assuming a 32-bit integer and null terminator and preceeding '0x'
+void print_hex(uint32_t num) {
+  char buffer[12]; // Assuming a 32-bit integer and null terminator and preceeding '0x'
   int i = 0;
   do {
     int remainder = num % 16;

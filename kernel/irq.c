@@ -1,5 +1,14 @@
+/*
+--------------------- 
+
+Interrupt Request
+
+--------------------- 
+*/ 
+
 #include "include/io.h"
 #include "include/idt.h"
+#include "stdint.h"
 
 /*
  
@@ -92,22 +101,22 @@ void irqs_init() {
   unsigned short ds = 0x08;
   unsigned short common_flags = 0x8E; // Same flags used for ISR handlers 0-31
 
-  idt_set_entry(32, (unsigned int)irq0, ds, common_flags);
-  idt_set_entry(33, (unsigned int)irq1, ds, common_flags);
-  idt_set_entry(34, (unsigned int)irq2, ds, common_flags);
-  idt_set_entry(35, (unsigned int)irq3, ds, common_flags);
-  idt_set_entry(36, (unsigned int)irq4, ds, common_flags);
-  idt_set_entry(37, (unsigned int)irq5, ds, common_flags);
-  idt_set_entry(38, (unsigned int)irq6, ds, common_flags);
-  idt_set_entry(39, (unsigned int)irq7, ds, common_flags);
-  idt_set_entry(40, (unsigned int)irq8, ds, common_flags);
-  idt_set_entry(41, (unsigned int)irq9, ds, common_flags);
-  idt_set_entry(42, (unsigned int)irq10, ds, common_flags);
-  idt_set_entry(43, (unsigned int)irq11, ds, common_flags);
-  idt_set_entry(44, (unsigned int)irq12, ds, common_flags);
-  idt_set_entry(45, (unsigned int)irq13, ds, common_flags);
-  idt_set_entry(46, (unsigned int)irq14, ds, common_flags);
-  idt_set_entry(47, (unsigned int)irq15, ds, common_flags);
+  idt_set_entry(32, (uintptr_t)irq0, ds, common_flags);
+  idt_set_entry(33, (uintptr_t)irq1, ds, common_flags);
+  idt_set_entry(34, (uintptr_t)irq2, ds, common_flags);
+  idt_set_entry(35, (uintptr_t)irq3, ds, common_flags);
+  idt_set_entry(36, (uintptr_t)irq4, ds, common_flags);
+  idt_set_entry(37, (uintptr_t)irq5, ds, common_flags);
+  idt_set_entry(38, (uintptr_t)irq6, ds, common_flags);
+  idt_set_entry(39, (uintptr_t)irq7, ds, common_flags);
+  idt_set_entry(40, (uintptr_t)irq8, ds, common_flags);
+  idt_set_entry(41, (uintptr_t)irq9, ds, common_flags);
+  idt_set_entry(42, (uintptr_t)irq10, ds, common_flags);
+  idt_set_entry(43, (uintptr_t)irq11, ds, common_flags);
+  idt_set_entry(44, (uintptr_t)irq12, ds, common_flags);
+  idt_set_entry(45, (uintptr_t)irq13, ds, common_flags);
+  idt_set_entry(46, (uintptr_t)irq14, ds, common_flags);
+  idt_set_entry(47, (uintptr_t)irq15, ds, common_flags);
 }
 
 /*

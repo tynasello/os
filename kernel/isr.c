@@ -1,3 +1,11 @@
+/*
+--------------------- 
+
+Interrupt Serive Routine
+
+--------------------- 
+*/ 
+
 #include "include/screen.h"
 #include "include/idt.h"
 
@@ -59,38 +67,38 @@ void isrs_init() {
                                       // descriptor is valid (bit 7), DPL is ring 0 (bits 5-6),
                                       // bit 4 is always 0, gate type is 32-bit interrupt gate (bits 0-3).
 
-  idt_set_entry(0, (unsigned int)isr0, ds, common_flags);
-  idt_set_entry(1, (unsigned int)isr1, ds, common_flags);
-  idt_set_entry(2, (unsigned int)isr2, ds, common_flags);
-  idt_set_entry(3, (unsigned int)isr3, ds, common_flags);
-  idt_set_entry(4, (unsigned int)isr4, ds, common_flags);
-  idt_set_entry(5, (unsigned int)isr5, ds, common_flags);
-  idt_set_entry(6, (unsigned int)isr6, ds, common_flags);
-  idt_set_entry(7, (unsigned int)isr7, ds, common_flags);
-  idt_set_entry(8, (unsigned int)isr8, ds, common_flags);
-  idt_set_entry(9, (unsigned int)isr9, ds, common_flags);
-  idt_set_entry(10, (unsigned int)isr10, ds, common_flags);
-  idt_set_entry(11, (unsigned int)isr11, ds, common_flags);
-  idt_set_entry(12, (unsigned int)isr12, ds, common_flags);
-  idt_set_entry(13, (unsigned int)isr13, ds, common_flags);
-  idt_set_entry(14, (unsigned int)isr14, ds, common_flags);
-  idt_set_entry(15, (unsigned int)isr15, ds, common_flags);
-  idt_set_entry(16, (unsigned int)isr16, ds, common_flags);
-  idt_set_entry(17, (unsigned int)isr17, ds, common_flags);
-  idt_set_entry(18, (unsigned int)isr18, ds, common_flags);
-  idt_set_entry(19, (unsigned int)isr19, ds, common_flags);
-  idt_set_entry(20, (unsigned int)isr20, ds, common_flags);
-  idt_set_entry(21, (unsigned int)isr21, ds, common_flags);
-  idt_set_entry(22, (unsigned int)isr22, ds, common_flags);
-  idt_set_entry(23, (unsigned int)isr23, ds, common_flags);
-  idt_set_entry(24, (unsigned int)isr24, ds, common_flags);
-  idt_set_entry(25, (unsigned int)isr25, ds, common_flags);
-  idt_set_entry(26, (unsigned int)isr26, ds, common_flags);
-  idt_set_entry(27, (unsigned int)isr27, ds, common_flags);
-  idt_set_entry(28, (unsigned int)isr28, ds, common_flags);
-  idt_set_entry(29, (unsigned int)isr29, ds, common_flags);
-  idt_set_entry(30, (unsigned int)isr30, ds, common_flags);
-  idt_set_entry(31, (unsigned int)isr31, ds, common_flags);
+  idt_set_entry(0, (uintptr_t)isr0, ds, common_flags);
+  idt_set_entry(1, (uintptr_t)isr1, ds, common_flags);
+  idt_set_entry(2, (uintptr_t)isr2, ds, common_flags);
+  idt_set_entry(3, (uintptr_t)isr3, ds, common_flags);
+  idt_set_entry(4, (uintptr_t)isr4, ds, common_flags);
+  idt_set_entry(5, (uintptr_t)isr5, ds, common_flags);
+  idt_set_entry(6, (uintptr_t)isr6, ds, common_flags);
+  idt_set_entry(7, (uintptr_t)isr7, ds, common_flags);
+  idt_set_entry(8, (uintptr_t)isr8, ds, common_flags);
+  idt_set_entry(9, (uintptr_t)isr9, ds, common_flags);
+  idt_set_entry(10, (uintptr_t)isr10, ds, common_flags);
+  idt_set_entry(11, (uintptr_t)isr11, ds, common_flags);
+  idt_set_entry(12, (uintptr_t)isr12, ds, common_flags);
+  idt_set_entry(13, (uintptr_t)isr13, ds, common_flags);
+  idt_set_entry(14, (uintptr_t)isr14, ds, common_flags);
+  idt_set_entry(15, (uintptr_t)isr15, ds, common_flags);
+  idt_set_entry(16, (uintptr_t)isr16, ds, common_flags);
+  idt_set_entry(17, (uintptr_t)isr17, ds, common_flags);
+  idt_set_entry(18, (uintptr_t)isr18, ds, common_flags);
+  idt_set_entry(19, (uintptr_t)isr19, ds, common_flags);
+  idt_set_entry(20, (uintptr_t)isr20, ds, common_flags);
+  idt_set_entry(21, (uintptr_t)isr21, ds, common_flags);
+  idt_set_entry(22, (uintptr_t)isr22, ds, common_flags);
+  idt_set_entry(23, (uintptr_t)isr23, ds, common_flags);
+  idt_set_entry(24, (uintptr_t)isr24, ds, common_flags);
+  idt_set_entry(25, (uintptr_t)isr25, ds, common_flags);
+  idt_set_entry(26, (uintptr_t)isr26, ds, common_flags);
+  idt_set_entry(27, (uintptr_t)isr27, ds, common_flags);
+  idt_set_entry(28, (uintptr_t)isr28, ds, common_flags);
+  idt_set_entry(29, (uintptr_t)isr29, ds, common_flags);
+  idt_set_entry(30, (uintptr_t)isr30, ds, common_flags);
+  idt_set_entry(31, (uintptr_t)isr31, ds, common_flags);
 
   exception_messages[0] = "Division By Zero";
   exception_messages[1] = "Debug";
@@ -138,14 +146,22 @@ void isr_fault_handler(struct regs *r) {
 
     print("Exception: ");
     print(exception_messages[r->int_no]);
-    print("\nError Code: ");
+    print("\n");
+
+    if(r->int_no==14){
+      print("Accessed virtual address: ");
+      uint32_t cr2_value;
+      asm volatile("mov %%cr2, %0" : "=r" (cr2_value));
+      print_hex(cr2_value);
+      print("\n");
+    }
+
+    print("Error Code: ");
     print_hex(r->err_code);
-    print("\nIP: ");
+    print("\n");
+
+    print("IP: ");
     print_hex(r->eip);
-    print("\nData Segment: ");
-    print_hex(r->ds);
-    print("\nCode Segment: ");
-    print_hex(r->cs);
 
     for (;;) {
     }
