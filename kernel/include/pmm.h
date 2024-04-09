@@ -4,7 +4,7 @@
 #include "stdint.h"
 
 void pmm_init();
-void print_endkernel();
 uintptr_t alloc_frame();
+void free_frame(uint32_t phys_addr);
 
 #endif

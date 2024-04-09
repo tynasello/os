@@ -2,7 +2,13 @@
 ---------------------
 
 Physical Memory Manager
-- Handles RAM allocation through a page frame allocater
+
+Manages and allocated RAM through a page frame allocater
+
+- Each page frame is 4096 bytes
+- Uses a bitmap to keep track of used/free pages
+  - Consider implementing a frame stack (constant time allocation and freeing)
+- The PMM does not guarantee specific or contigous frames
 
 --------------------- 
 */
@@ -12,45 +18,48 @@ Physical Memory Manager
 #include <stdint.h>
 
 #define FREE_START 0x100000
-#define NUMFRAMES 3584 // 14 MiB (0x00100000-0x00EFFFFF)
-#define FREE 1
-#define TAKEN 0
+#define NO_FRAMES 3584 // 14 MiB (0x00100000-0x00EFFFFF)
 #define FRAME_SIZE 4096
+#define FRAME_MAP_BITS_PER_ROW 8
 
 /* Set in linker script */
 extern uint32_t endkernel;
 
-/* Bit map where each byte represents status of 8 contiguous pages */
-unsigned char frame_map[NUMFRAMES]; 
+/* 
+Bit map where each byte represents status of 8 contiguous frames.
+0 = free, 1 = taken.
+*/
+uint8_t frame_map[NO_FRAMES]; 
 
 void pmm_init() {
-  mem_set(frame_map, 0xff, NUMFRAMES/8);
+  mem_set(frame_map, 0x00, NO_FRAMES/FRAME_MAP_BITS_PER_ROW);
 }
 
-void print_endkernel(){
-  print_hex((uintptr_t)&endkernel);
-}
-
-/* 
-Current method used for simplicity.
-Alternative is to use a stack structure.
+/*
+Allocate and return a physcial address that is free for use.
+Return 0 if no physcial memory is available.
 */
 uintptr_t alloc_frame(){
-  int i = 0;
-  while(frame_map[i] == TAKEN){
-    if(i == NUMFRAMES){
+  int row = 0;
+  while(frame_map[row] == ((1 << FRAME_MAP_BITS_PER_ROW) - 1)){
+    if(row == NO_FRAMES){
       return 0;
     }
-    i++;
-  }
-  int j = 0;
-  while((frame_map[i] & (FREE << j)) == TAKEN){
-    if(j == 8){
-      return 0;
-    }
-    j++;
+    row++;
   }
 
-  frame_map[i] = frame_map[i] & ~(FREE << j);
-  return FREE_START + (i * 8 + j) * FRAME_SIZE;
+  int col = 0;
+  while(frame_map[row] & 1 << col){
+    col++;
+  }
+
+  frame_map[row] = frame_map[row] | (1 << col);
+  return FREE_START + (row * FRAME_MAP_BITS_PER_ROW + col) * FRAME_SIZE;
+}
+
+void free_frame(uint32_t phys_addr){
+  int frame_map_loc = (phys_addr - FREE_START) / FRAME_SIZE;
+  int col = frame_map_loc % FRAME_MAP_BITS_PER_ROW;
+  int row = (frame_map_loc - col) / FRAME_MAP_BITS_PER_ROW;
+  frame_map[row] = frame_map[row] & ~(1 << col);
 }
