@@ -3,7 +3,8 @@
 
 #include "stdint.h"
 
-void vmm_init();
-uintptr_t kmalloc(int no_bytes);
+void vm_init();
+uintptr_t kmalloc(uint32_t no_bytes);
+int kfree(void* va);
 
 #endif

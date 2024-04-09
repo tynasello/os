@@ -2,6 +2,8 @@
 #include "include/irq.h"
 #include "include/isr.h"
 #include "include/kb.h"
+#include "include/snake.h"
+#include "include/system.h"
 #include "include/vmm.h"
 #include "include/pmm.h"
 #include "include/screen.h"
@@ -12,7 +14,7 @@ void kmain() {
   print("Entered into 32-bit Protected Mode.\n");
   print("Kernel loaded. Execution started at kmain.\n");
 
-  unsigned int stack_pointer;
+  uint32_t stack_pointer;
   asm("mov %%esp, %0" : "=r" (stack_pointer)); 
   print("Stack locatated at: ");
   print_hex(stack_pointer);
@@ -27,16 +29,34 @@ void kmain() {
   print("ISRs initialized and loaded into IDT.\n");
 
   __asm__ __volatile__("sti"); // Re-enable interrups after the IDT and interrupt handlers have been initialized
-  
-  print("End of kernel code located at: ");
-  print_endkernel();
-  print("\n");
 
   pmm_init();
-  vmm_init();
+  vm_init();
   print("Paging enabled.\n");
-
+  
+  // snake_strt();
+  
   /* ------------- */
+
+  // int* a = (int*)kmalloc(4000);
+  // *a = 9;
+  // int* b = (int*)kmalloc(4000);
+  // *b = 9;
+  // int* c = (int*)kmalloc(4000);
+  // *c = 9;
+  // int* d = (int*)kmalloc(4000);
+  // *d = 9;
+  // kfree(a);
+  // kfree(b);
+
+  // for (int i = 0; i < 3; i++){
+  //   int* a = (int*)kmalloc(4);
+  //   *a = i;
+  //   kfree(a);
+  //   print_int((uintptr_t)*a);
+  //   print_hex((uintptr_t)a);
+  //   print(", ");
+  // }
 
   // int* a = (int*) kmalloc(4097);
   // int* b = (int*) kmalloc(8);
@@ -54,6 +74,11 @@ void kmain() {
   // print_hex((uintptr_t)e);
   // print(", ");
 
+  // // Page fault
+  // int*a = (int*) 0xA000000;
+  // *a = 3;
+
+  // // Divide by zero
   // __asm__ volatile("mov $0, %eax\n\t" // Cause divide-by-zero error
   //                  "mov $0, %edx\n\t"
   //                  "div %edx");
