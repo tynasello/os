@@ -136,25 +136,31 @@ void isrs_init() {
 
 /*
  
+An array of function pointers mapping ISR numbers to handler functions
+
+*/
+void *isr_handlers[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+void isr_install_handler(int isr_no, void (*handler)(struct regs *r)) {
+  if (isr_no >= 0 && isr_no <= 31) {
+    isr_handlers[isr_no] = handler;
+  }
+}
+
+/*
+ 
 Generic fault handler called by all exception based ISRs.
 For now, display a message and halt the CPU.
 
 */
 void isr_fault_handler(struct regs *r) {
   if (r->int_no < 32) {
-    print("System Halted!\n");
+    print("\nSystem Halted!\n");
 
     print("Exception: ");
     print(exception_messages[r->int_no]);
     print("\n");
-
-    if(r->int_no==14){
-      print("Accessed virtual address: ");
-      uint32_t cr2_value;
-      asm volatile("mov %%cr2, %0" : "=r" (cr2_value));
-      print_hex(cr2_value);
-      print("\n");
-    }
 
     print("Error Code: ");
     print_hex(r->err_code);
@@ -162,6 +168,13 @@ void isr_fault_handler(struct regs *r) {
 
     print("IP: ");
     print_hex(r->eip);
+    print("\n");
+
+    void (*handler)(struct regs *r); // Blank function pointer
+    handler = isr_handlers[r->int_no]; 
+    if (handler) {
+      handler(r);
+    }
 
     for (;;) {
     }

@@ -2,6 +2,7 @@
 #include "include/irq.h"
 #include "include/screen.h"
 
+#define NUM_OBSERVERS 5
 /*
 Anything the keyboard is trying to send to the computer is sent through the data register. 
 The keyboard raises IRQ1 when it has data available for reading.
@@ -11,11 +12,38 @@ The keyboard raises IRQ1 when it has data available for reading.
 /* Keyboard scancode to ASCII lookup table using US Keyboard Layout */
 unsigned char kb_us_keymap[128];
 
+/* 
+Register observers to call when keyboard IRQ fired.
+Return 0 if registration unsuccessful.
+*/
+static void* observers[NUM_OBSERVERS];
+
+int register_kb_observer(void* fn){
+  int i;
+  for(i = 0; i < NUM_OBSERVERS; i++){
+    if(observers[i] == 0){
+      break;
+    }
+  }
+  if (i >= NUM_OBSERVERS){
+    return 0;
+  }
+
+  observers[i] = fn;
+  return 1;
+}
+
+void deregister_kb_observer(void* fn){
+  for(int i = 0; i < NUM_OBSERVERS; i++){
+    if(observers[i] == fn){
+      observers[i] = 0;
+    }
+  }
+}
+
 
 /*
- 
 Keyboard IRQ handler
-
 */
 void kb_handler(struct regs *r) {
   unsigned char scancode = port_byte_in(KB_DATA_PORT);
@@ -24,7 +52,17 @@ void kb_handler(struct regs *r) {
     // Key has been released if top bit of byte is set
   } else {
     // Key has been pressed
-    print_char(kb_us_keymap[scancode], 0); // Map scancode to ASCII value and print it
+    
+    char c = kb_us_keymap[scancode];
+    
+    for (int i = 0; i < NUM_OBSERVERS; i++){
+      if(observers[i] == 0){
+        break;
+      }
+      void (*fn)(char c); 
+      fn = observers[i];
+      fn(c);
+    }
   }
 }
 

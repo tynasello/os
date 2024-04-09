@@ -41,8 +41,8 @@ BOOT_DRIVE: db 0
 LOAD_KERNEL:
 	mov bx, MSG_LOAD_KERNEL
 	call PRINT_STRING
-	mov bx, KERNEL_OFFSET ; Load 20 sectors (512B * 15 = 10KiB) to 0x500 (ES:KERNEL_OFFSET)
-	mov dh, 20
+	mov bx, KERNEL_OFFSET ; Load 40 sectors (512B * 40 = 20KiB) to 0x500 (ES:KERNEL_OFFSET)
+	mov dh, 40
 	mov dl, [BOOT_DRIVE]
 	call DISK_LOAD
 	ret
