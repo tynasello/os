@@ -3,27 +3,42 @@
 
 #include <stdint.h>
 
-typedef enum Color{
-  WHITEoBLACK,
-  BLACKoWHITE,
-  BLACKoBLACK,
-  GREENoBLACK,
-  REDoBLACK,
-} Color;
+typedef enum {
+    BLACK = 0,
+    BLUE,
+    GREEN,
+    CYAN,
+    RED,
+    MAGENTA,
+    BROWN,
+    LIGHT_GRAY,
+    DARK_GRAY,
+    LIGHT_BLUE,
+    LIGHT_GREEN,
+    LIGHT_CYAN,
+    LIGHT_RED,
+    LIGHT_MAGENTA,
+    LIGHT_BROWN,
+    WHITE,
+} VGATextColor;
 
-void screen_backup();
+void enable_cursor();
+void disable_cursor();
+
+void print_at(const char* a, int x, int y, VGATextColor fg, VGATextColor bg);
+void print(const char *a);
+
+void print_int_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg);
+void print_int(uint32_t num);
+void print_hex_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg);
+void print_hex(uint32_t num);
+
+void clear_screen();
 void screen_restore();
-char get_c_attr(char bg, char fg);
+void screen_backup();
 int get_screen_w();
 int get_screen_h();
-void print(const char *s);
-void print_at(const char *s, int row, int col, enum Color color);
-void print_int_at(uint32_t num, int row, int col, enum Color color);
-void print_int(uint32_t num);
-void print_hex_at(uint32_t num, int row, int col, enum Color color);
-void print_hex(uint32_t num);
-void clear_screen();
-void print_block(int x1, int x2, int y1, int y2, enum Color color);
-void print_square(int x, int y, enum Color color);
+void print_square(int x, int y, VGATextColor color);
+void print_block(int x1, int x2, int y1, int y2, VGATextColor color);
 
 #endif

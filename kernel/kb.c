@@ -164,5 +164,9 @@ void kb_install() {
   kb_us_keymap[88] = 0;     // F12 Key
                             // Additional keys are undefined
 
+  for (int i = 0; i < NUM_OBSERVERS; i++){
+    observers[i] = 0;
+  }
+
   irq_install_handler(1, kb_handler);
 }

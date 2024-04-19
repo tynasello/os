@@ -75,6 +75,9 @@ void timer_handler(struct regs *r) {
 Add the timer handler to the IRQ based interrupt mapping
 */
 void timer_install() { 
+  for (int i = 0; i < NUM_OBSERVERS; i++){
+    observers[i] = 0;
+  }
   irq_install_handler(0, timer_handler); 
 }
 

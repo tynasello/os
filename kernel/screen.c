@@ -4,112 +4,101 @@
 #include <stdint.h>
 
 /*
+ 
+The Video Graphics Array (VGA) controller is responsible for managing video display output.  
+It is responsible for rendering characters to the screen, controlling the cursor position, 
+setting display modes (text mode, graphics mode), and handling various attributes like colors
+and resolution.
 
-I/O Ports:
-- port to the screen controller's control register, used to select the operating register:
-  - reg 14 is the high byte of the cursors offset
-  - reg 15 is the low byte of the cursors offset
-- port to the screen controller's data register, used to transfer data
+In text mode, video memory is mapped to specific addresses in memory (starting at 0xb8000), 
+and writing to these addresses updates what appears on the screen. 
+
+Each character on the screen is represented by two bytes: 
+one for the character itself (ASCII code) and one for its attribute (such as color).
+Bits 4-7 of the color are the background, and bits 0-3 are the foreground.
+
+The VGA controller receives signals through specific I/O ports.
+CTRL is the control register port and is used to select a register to operate on:
+- reg 14 is the high byte of the cursors offset
+- reg 15 is the low byte of the cursors offset
+DATA is the data register port used for transferring data to the controller.
 
 */
-#define SCREEN_CTRL_PORT 0x3D4 
-#define SCREEN_DATA_PORT 0x3D5 
-#define SCREEN_REG_CURSOR_HIGH 14
-#define SCREEN_REG_CURSOR_LOW 15
 
-#define VIDEO_MEMORY 0xb8000 // Address of memory-mapped screen device
-#define VIDEO_MEMORY_BACKUP VIDEO_MEMORY + MAX_ROWS * MAX_COLS * 2
-#define MAX_ROWS 25
-#define MAX_COLS 80
+#define CTRL 0x3D4 
+#define DATA 0x3D5 
+#define CURSOR_HIGH 14
+#define CURSOR_LOW 15
 
-/* Bits 4-7 are background, bits 0-3 are foreground */
-#define BLACK 0x0
-#define BLUE 0x1
-#define GREEN 0x2
-#define CYAN 0x3
-#define RED 0x4
-#define MAGENTA 0x5
-#define BROWN 0x6
-#define LIGHT_GRAY 0x7
-#define DARK_GRAY 0x8
-#define LIGHT_BLUE 0x9
-#define LIGHT_GREEN 0xA
-#define LIGHT_CYAN 0xB
-#define LIGHT_RED 0xC
-#define LIGHT_MAGENTA 0xD
-#define YELLOW 0xE
-#define WHITE 0xF
+#define TXT_BUF_BASE 0xb8000 
 
-char get_c_attr(char bg, char fg){
+#define ROW_START 2 // Qemu doesn't display first two rows
+#define ROW_END 25
+#define COL_START 0
+#define COL_END 80
+
+typedef struct {
+  uint8_t x;
+  uint8_t y;
+  uint8_t* vidmem;
+  uint8_t* vidmem_backup;
+  uint8_t* pos_backup;
+} screen;
+
+screen s = {
+  .x = COL_START,
+  .y = 9,
+  .vidmem = (uint8_t *)TXT_BUF_BASE,
+  .vidmem_backup = (uint8_t*)(TXT_BUF_BASE + COL_END * 2 * ROW_END),
+  .pos_backup = (uint8_t*)(TXT_BUF_BASE + COL_END * 2 * ROW_END * 2),
+};
+
+static int get_offset(int x, int y) {
+  return (y * COL_END + x) * 2; 
+}
+
+static uint8_t get_char_attr(VGATextColor fg, VGATextColor bg){
   return (bg << 4) | (fg & 0xF);
 }
 
-char color_to_attr(enum Color color){
-  if(color == BLACKoBLACK){
-    return get_c_attr(BLACK, BLACK);
-  } else if(color == WHITEoBLACK){
-    return get_c_attr(BLACK, WHITE);
-  } else if(color == BLACKoWHITE){
-    return get_c_attr(WHITE, BLACK);
-  } else if(color == GREENoBLACK){
-    return get_c_attr(GREEN, BLACK);
-  } else if(color == REDoBLACK){
-    return get_c_attr(RED, BLACK);
-  } else{
-    return get_c_attr(BLACK, WHITE);
+/*
+ 
+Printing 
+
+*/
+
+void enable_cursor() {
+	port_byte_out(CTRL, 0x0A);
+	port_byte_out(DATA, (port_byte_in(DATA) & 0xC0) | 13);
+	port_byte_out(CTRL, 0x0B);
+	port_byte_out(DATA, (port_byte_in(DATA) & 0xE0) | 14);
+}
+
+void disable_cursor() {
+	port_byte_out(CTRL, 0x0A);
+	port_byte_out(DATA, 0x20);
+}
+
+static void set_cursor(int x, int y) {
+  int offset = get_offset(x, y) / 2;
+  port_byte_out(CTRL, 0xE);
+  port_byte_out(DATA, (offset >> 8) & 0xFF);
+  port_byte_out(CTRL, 0xF);
+  port_byte_out(DATA, (offset) & 0xFF);
+}
+
+static void handle_scrolling() {
+  if (s.y < ROW_END){
+    return;
   }
-}
 
-int get_screen_w(){
-  return MAX_COLS;
-}
-
-int get_screen_h(){
-  return MAX_ROWS;
-}
-
-int get_offset(int row, int col) {
-  return (row * MAX_COLS + col) * 2; 
-}
-
-int handle_scrolling(int offset) {
-  if (offset < MAX_ROWS * MAX_COLS * 2) {
-    return offset;
+  for (int y = 1; y < ROW_END; y++) {
+    mem_cpy(get_offset(COL_START, y) + s.vidmem, get_offset(COL_START, y-1) + s.vidmem, COL_END * 2);
   }
-  char *vidmem = (char *)VIDEO_MEMORY;
-  for (int row = 1; row < MAX_ROWS; ++row) {
-    mem_cpy((unsigned char *)(get_offset(row, 0) + vidmem),
-            (unsigned char *)(get_offset(row - 1, 0) + vidmem), MAX_COLS * 2);
-  }
-  char *last_line = get_offset(MAX_ROWS - 1, 0) + vidmem;
-  for (int col = 0; col < MAX_COLS * 2; ++col) {
-    last_line[col] = 0;
-  }
-  offset -= 2 * MAX_COLS;
-  return offset;
-}
 
-int get_cursor() {
-  /*
-  A character cell is represented by two bytes:
-  - the first is the ascii code for the character
-  - the second is the character attributes (foreground, background, blinking)
-
-  Cursor offset in VGA hardware is represented as the number of written characters (2 bytes each).
-  */
-  port_byte_out(SCREEN_CTRL_PORT, SCREEN_REG_CURSOR_HIGH);
-  int offset = port_byte_in(SCREEN_DATA_PORT) << 8;
-  port_byte_out(SCREEN_CTRL_PORT, SCREEN_REG_CURSOR_LOW);
-  offset += port_byte_in(SCREEN_DATA_PORT);
-  return offset * 2;
-}
-
-void set_cursor(int offset) {
-  offset /= 2;
-  port_byte_out(SCREEN_CTRL_PORT, 14);
-  port_byte_out(SCREEN_DATA_PORT, offset >> 8);
-  port_byte_out(SCREEN_CTRL_PORT, 15);
-  port_byte_out(SCREEN_DATA_PORT, offset);
+  mem_set(get_offset(COL_START, ROW_END - 1) + s.vidmem, 0, COL_END * 2);
+  s.x = COL_START;
+  s.y = ROW_END - 1;
 }
 
 /*
@@ -118,33 +107,42 @@ Word
 
 */
 
-static void print_char(char c, enum Color color) {
-  char c_attr = color_to_attr(color);
-
-  char *vidmem = (char *)VIDEO_MEMORY;
-  int offset = get_cursor();
+static void print_char(char c, VGATextColor fg, VGATextColor bg) {
   if (c == '\n') {
-    offset = get_offset(offset / (2 * MAX_COLS), MAX_COLS - 1);
+    s.y++;
+    s.x = COL_START;
   } else {
-    *(vidmem + offset) = c;
-    *(vidmem + offset + 1) = c_attr;
+    int offset = get_offset(s.x, s.y);
+    *(s.vidmem + offset) = c;
+    *(s.vidmem + offset + 1) = get_char_attr(fg, bg);
+    s.x++;
   }
-  offset += 2;
-  offset = handle_scrolling(offset);
-  set_cursor(offset);
+
+  if (s.x == COL_END) {
+    s.y++;
+    s.x = COL_START;
+  }
+
+  handle_scrolling();
 }
 
-void print_at(const char *s, int row, int col, enum Color color) {
-  if (row >= 0 && col >= 0) {
-    set_cursor(get_offset(row, col));
+void print_at(const char* a, int x, int y, VGATextColor fg, VGATextColor bg) {
+  y += ROW_START;
+  if (x >= COL_START && x < COL_END) {
+    s.x = x;
   }
+  if (y >= ROW_START && y < ROW_END) {
+    s.y = y;
+  }
+
   int i = 0;
-  while (s[i] != 0) {
-    print_char(s[i++], color);
+  while (a[i] != 0) {
+    print_char(a[i++], fg, bg);
   }
+  set_cursor(s.x, s.y);
 }
 
-void print(const char *s) { print_at(s, -1, -1, 0); }
+void print(const char* a) { print_at(a, -1, -1, WHITE, BLACK); }
 
 /*
   
@@ -152,24 +150,24 @@ Number
 
 */
 
-void print_int_at(uint32_t num, int row, int col, enum Color color) {
-  char buffer[11]; // Buffer to store the converted string. Assume 32-bit integer and null terminator
-  itos(num, buffer);
-  print_at(buffer, row, col, color); 
+void print_int_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg) {
+  char num_str[11]; // Buffer to store the converted string. Assume 32-bit integer (10 chars) and null terminator
+  itos(num, num_str);
+  print_at(num_str, x, y, fg, bg); 
 }
 
 void print_int(uint32_t num) {
-  print_int_at(num, -1, -1, 0);
+  print_int_at(num, -1, -1, WHITE, BLACK);
 }
 
-void print_hex_at(uint32_t num, int row, int col, enum Color color) {
-  char buffer[12]; // Assuming a 32-bit integer and null terminator and preceeding '0x'
-  htos(num, buffer);
-  print_at(buffer, row, col, color); 
+void print_hex_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg) {
+  char num_str[12]; // Assuming a 32-bit integer (8 chars) and null terminator and preceeding '0x' (3 chars)
+  htos(num, num_str);
+  print_at(num_str, x, y, fg, bg); 
 }
 
 void print_hex(uint32_t num) {
-  print_hex_at(num, -1, -1, 0);
+  print_hex_at(num, -1, -1, WHITE, BLACK);
 }
 
 /*
@@ -178,56 +176,49 @@ Screen
 
 */
 
+int get_screen_w(){
+  return COL_END - COL_START;
+}
+
+int get_screen_h(){
+  return ROW_END - ROW_START;
+}
+
 void clear_screen() {
-  for (int row = 0; row < MAX_ROWS; ++row) {
-    for (int col = 0; col < MAX_COLS; ++col) {
-      print_at(" ", row, col, 0);
+  for (int y = ROW_START; y < ROW_END; y++) {
+    for (int x = COL_START; x < COL_END; x++) {
+      print_at(" ", x, y, WHITE, BLACK);
     }
   }
-  set_cursor(get_offset(2, 0)); // Should be 0 not 2; using 2 because qemu window too small
+  s.x = COL_START;
+  s.y = ROW_START;
+  set_cursor(s.x, s.y);
 }
 
 void screen_backup(){
-  mem_cpy((unsigned char*)VIDEO_MEMORY, (unsigned char*)VIDEO_MEMORY_BACKUP, MAX_COLS * MAX_ROWS * 2);
-  clear_screen();
+  mem_cpy(s.vidmem, s.vidmem_backup, COL_END * ROW_END * 2);
+  mem_set(s.pos_backup, s.x, 1);
+  mem_set(s.pos_backup + 1, s.y, 1);
 }
 
 void screen_restore(){
-  clear_screen();
-  mem_cpy((unsigned char*)VIDEO_MEMORY_BACKUP, (unsigned char*)VIDEO_MEMORY, MAX_COLS * MAX_ROWS * 2);
+  mem_cpy(s.vidmem_backup, s.vidmem, COL_END * ROW_END * 2);
+  uint8_t* cursor_backup = s.pos_backup;
+  s.x = *cursor_backup;
+  s.y = *(cursor_backup + 1);
+  set_cursor(s.x, s.y);
 };
 
-static int bound_screen(int a, int mi, int ma) {
-    if (a < mi){
-      return mi;
-    }
-    else if (a >= ma){
-      return ma - 1;
-    }
-    else{
-      return a;
-    }
+void print_square(int x, int y, VGATextColor color) {
+  print_at(" ", x, y, color, color);
 }
 
 /* Print block from (x1, y1) - (x2, y2) inclusive */
-void print_block(int x1, int x2, int y1, int y2, enum Color color){
-  x1 = bound_screen(x1, 0, MAX_COLS);
-  x2 = bound_screen(x2, 0, MAX_COLS);
-  y1 = bound_screen(y1, 0, MAX_ROWS);
-  y2 = bound_screen(y2, 0, MAX_ROWS);
-
-
+void print_block(int x1, int y1, int x2, int y2, VGATextColor color){
   for (int x = x1; x <= x2; x++){
     for (int y = y1; y <= y2; y++){
       print_square(x, y, color);
     }
   }
-
 }
 
-void print_square(int x, int y, enum Color color){
-  x = bound_screen(x, 0, MAX_COLS);
-  y = bound_screen(y, 0, MAX_ROWS);
-
-  print_at(" ", y, x, color);
-}

@@ -20,6 +20,11 @@ void kmain() {
   print_hex(stack_pointer);
   print("\n");
 
+  extern uintptr_t endkernel;
+  print("End of kernel locatated at: ");
+  print_hex((uintptr_t)&endkernel);
+  print("\n");
+
   idt_init();
   print("IDT initialized and loaded.\n");
   isrs_init();
@@ -33,9 +38,9 @@ void kmain() {
   pmm_init();
   vm_init();
   print("Paging enabled.\n");
-  
-  // snake_strt();
-  
+
+  snake_start();
+
   /* ------------- */
 
   // int* a = (int*)kmalloc(4000);

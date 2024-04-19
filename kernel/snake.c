@@ -4,8 +4,7 @@
 #include "include/timer.h"
 #include "include/vmm.h"
 
-#define INIT_L 5
-#define MARGIN 2
+#define INIT_L 5 // Initial length of snake
 
 typedef enum Dir {
   UP,
@@ -17,169 +16,194 @@ typedef enum Dir {
 typedef struct Food {
   int x;
   int y;
-  Color c;
+  VGATextColor color;
 } Food;
 
 typedef struct Scale {
   int x;
   int y;
-  Color c;
+  VGATextColor color;
   struct Scale *next;
 } Scale;
 
 typedef struct Snake {
   Scale *head;
   Scale *tail;
-  int l;
+  int len;
   Dir curr_dir;
 } Snake;
 
 typedef struct Game {
   int screen_w;
   int screen_h;
-  int best_scr;
-  int curr_scr;
-  int started;
+  int best_score;
+  int curr_score;
   int running;
-  int quit;
+  int quitted;
   Snake s;
   Food f;
 } Game;
 
 static Game g;
 
-static void clocked();
-static void usr_in(char pressed);
+static void tick();
+static void user_in(char pressed);
+
+/*
+
+UI
+
+*/
 
 void draw_snake() {
   Scale *curr = g.s.head;
-  for (int i = 0; i < g.s.l; i++) {
-    print_square(curr->x, curr->y, curr->c);
+  for (int i = 0; i < g.s.len; i++) {
+    print_square(curr->x, curr->y, curr->color);
     curr = curr->next;
   }
 }
 
-void draw_food() { print_square(g.f.x, g.f.y, g.f.c); }
+void draw_food() { 
+  print_square(g.f.x, g.f.y, g.f.color); 
+}
 
-void draw_score() { print_int_at(g.curr_scr, 2, g.screen_w - 2, BLACKoWHITE); }
+void draw_border(){
+  print_block(0, 0, g.screen_w - 1, 0, WHITE);
+}
 
-static void reset_game() {
-  clear_screen();
-  print_block(0, g.screen_w, MARGIN - 1, MARGIN - 1, BLACKoWHITE);
-  print_block(0, g.screen_w, MARGIN, MARGIN, BLACKoWHITE);
+void draw_best_score(){
+  print_at("BEST: ", 2, 0, BLACK, WHITE);
+  print_int_at(g.best_score, 7, 0, BLACK, WHITE);
+}
 
-  print_at("BEST: ", MARGIN, 0, BLACKoWHITE);
-  print_int_at(g.best_scr, MARGIN, 5, BLACKoWHITE);
+void draw_score() { 
+  print_int_at(g.curr_score, g.screen_w - 3, 0, BLACK, WHITE); 
+}
 
-  draw_score();
+/*
 
+Game Setup
+
+*/
+
+static void init_game() {
+  /* Initialize game structures */
   Scale *head = (Scale *)kmalloc(sizeof(Scale));
-  head->c = REDoBLACK;
+  Scale *tail;
+  head->color = RED;
   head->x = 15;
   head->y = 15;
 
   Scale *curr = head;
-  Scale *tail;
-
   for (int i = 0; i < INIT_L - 1; i++) {
-    Scale *next = (Scale *)kmalloc(sizeof(Scale));
-    tail = next;
-    next->c = GREENoBLACK;
-    next->x = curr->x;
-    next->y = curr->y - 1;
-    curr->next = next;
+    Scale *scale = (Scale *)kmalloc(sizeof(Scale));
+    scale->color = GREEN;
+    scale->x = curr->x;
+    scale->y = curr->y - 1;
+    curr->next = scale;
     curr = curr->next;
+    tail = scale;
   }
 
-  Snake s = {};
-  s.head = head;
-  s.tail = tail;
-  s.l = INIT_L;
-  s.curr_dir = DOWN;
+  Snake s = {
+    .head = head, 
+    .tail = tail, 
+    .len = INIT_L, 
+    .curr_dir = DOWN
+  };
 
-  Food f = {g.screen_w / 2, g.screen_h / 2, BLACKoWHITE};
+  Food f = {
+    .x = g.screen_w / 2, 
+    .y = g.screen_h / 2, 
+    .color = WHITE 
+  };
 
   g.s = s;
   g.f = f;
+  g.curr_score = 0;
+
+  /* Initialize display */
+  clear_screen();
+  draw_border();
+  draw_best_score();
+  draw_score();
   draw_snake();
   draw_food();
 }
 
-void snake_strt() {
+void snake_start() {
+  disable_cursor();
   screen_backup();
-
   g.screen_w = get_screen_w();
   g.screen_h = get_screen_h();
-  g.started = 0;
   g.running = 0;
-  g.quit = 0;
-  g.best_scr = 0;
-  g.curr_scr = 0;
-
-  reset_game();
-
-  register_timer_observer(&clocked, 0);
-  register_kb_observer(&usr_in);
+  g.quitted = 0;
+  g.best_score = 0;
+  g.curr_score = 0;
+  init_game();
+  register_timer_observer(&tick, 0);
+  register_kb_observer(&user_in);
 }
 
 static void game_over() {
   g.running = 0;
 
-  if (g.quit) {
-    deregister_timer_observer(&clocked);
-    deregister_kb_observer(&usr_in);
-    screen_restore();
-  } else {
-    if (g.curr_scr > g.best_scr) {
-      g.best_scr = g.curr_scr;
-    }
-    g.curr_scr = 0;
-    reset_game();
-    g.started = 0;
+  Scale *curr = g.s.head;
+  Scale *next = 0x0;
+  for (int i = 0; i < g.s.len; i++) {
+    next = curr->next;
+    kfree(curr);
+    curr = next;
   }
+
+  if (g.quitted) {
+    deregister_timer_observer(&tick);
+    deregister_kb_observer(&user_in);
+    screen_restore();
+    enable_cursor();
+    print("Game Over");
+    return;
+  } 
+
+  g.best_score = g.curr_score > g.best_score ? g.curr_score : g.best_score;
+  init_game();
 
   return;
 }
 
-static void usr_in(char pressed) {
+/*
+ 
+Game Play
+
+*/
+
+static void user_in(char pressed) {
   if (pressed != 'w' && pressed != 'a' && pressed != 's' && pressed != 'd' &&
-      pressed != 'g' && pressed != 'r' && pressed != 'q') {
+      pressed != 'g' && pressed != 'q') {
     return;
   }
 
   if (pressed == 'q') {
-    g.quit = 1;
+    g.quitted = 1;
     game_over();
     return;
   }
 
-  if (!g.started && pressed != 'g') {
+  if (!g.running && pressed != 'g') {
     return;
   }
 
-  if (pressed == 'g' && !g.running) {
-    g.started = 1;
-    g.running = 1;
-  }
-
-  if (!g.running) {
-    return;
-  }
-
-  if (pressed == 'w') {
-    g.s.curr_dir = UP;
-  } else if (pressed == 'a') {
-    g.s.curr_dir = LEFT;
-  } else if (pressed == 's') {
-    g.s.curr_dir = DOWN;
-  } else if (pressed == 'd') {
-    g.s.curr_dir = RIGHT;
-  }
+  g.running = 1;
+  g.s.curr_dir = pressed == 'w' ? UP
+               : pressed == 'a' ? LEFT
+               : pressed == 's' ? DOWN
+               : pressed == 'd' ? RIGHT
+               : g.s.curr_dir;
 }
 
-static int foodBlocked() {
+static int food_is_blocked() {
   Scale *curr = g.s.head;
-  for (int i = 0; i < g.s.l; i++) {
+  for (int i = 0; i < g.s.len; i++) {
     if (g.f.x == curr->x && g.f.y == curr->y) {
       return 1;
     }
@@ -189,53 +213,51 @@ static int foodBlocked() {
 }
 
 static void move() {
-  /* Remove tail */
-
-  int init_tail_x = g.s.tail->x;
-  int init_tail_y = g.s.tail->y;
-  print_square(g.s.tail->x, g.s.tail->y, BLACKoBLACK);
+  /* Remove display of tail */
+  int prev_tail_x = g.s.tail->x;
+  int prev_tail_y = g.s.tail->y;
+  print_square(prev_tail_x, prev_tail_y, BLACK);
 
   /* Move body */
-
   Scale *curr = g.s.head;
-
-  int curr_x = curr->x;
-  int curr_y = curr->y;
-
-  for (int i = 0; i < g.s.l - 1; i++) {
-    int tempx = curr->next->x;
-    int tempy = curr->next->y;
-    curr->next->x = curr_x;
-    curr->next->y = curr_y;
-    curr_x = tempx;
-    curr_y = tempy;
+  int prev_x = curr->x;
+  int prev_y = curr->y;
+  for (int i = 0; i < g.s.len - 1; i++) {
+    int curr_x = curr->next->x;
+    int curr_y = curr->next->y;
+    curr->next->x = prev_x;
+    curr->next->y = prev_y;
+    prev_x = curr_x;
+    prev_y = curr_y;
     curr = curr->next;
   }
 
   /* Move head */
-
-  if (g.s.curr_dir == UP) {
-    g.s.head->y--;
-  } else if (g.s.curr_dir == LEFT) {
-    g.s.head->x--;
-  } else if (g.s.curr_dir == DOWN) {
-    g.s.head->y++;
-  } else if (g.s.curr_dir == RIGHT) {
-    g.s.head->x++;
+  switch (g.s.curr_dir){
+    case UP:
+      g.s.head->y--;
+      break;
+    case LEFT:
+      g.s.head->x--;
+      break;
+    case DOWN:
+      g.s.head->y++;
+      break;
+    case RIGHT:
+      g.s.head->x++;
+      break;
   }
 
   /* Check for border collision */
-
   if (g.s.head->x < 0 || g.s.head->x >= g.screen_w ||
-      g.s.head->y < MARGIN + 1 || g.s.head->y >= g.screen_h) {
+      g.s.head->y < 1 || g.s.head->y >= g.screen_h) {
     game_over();
     return;
   }
 
   /* Check for self collision */
-
   curr = g.s.head->next;
-  for (int i = 0; i < g.s.l - 1; i++) {
+  for (int i = 0; i < g.s.len - 1; i++) {
     if (g.s.head->x == curr->x && g.s.head->y == curr->y) {
       game_over();
       return;
@@ -243,38 +265,33 @@ static void move() {
     curr = curr->next;
   }
 
-  /* Grow */
-
+  /* Grow if snake ate */
   if (g.s.head->x == g.f.x && g.s.head->y == g.f.y) {
-    g.curr_scr++;
+    g.curr_score++;
     draw_score();
 
     Scale *growth = (Scale *)kmalloc(sizeof(Scale));
-    growth->x = init_tail_x;
-    growth->y = init_tail_y;
-    growth->c = g.s.tail->c;
-
+    growth->x = prev_tail_x;
+    growth->y = prev_tail_y;
+    growth->color = g.s.tail->color;
     g.s.tail->next = growth;
     g.s.tail = growth;
-    g.s.l++;
+    g.s.len++;
 
     do {
-      g.f.x = rand_range(MARGIN, g.screen_w - MARGIN);
-      g.f.y = rand_range(MARGIN, g.screen_h - MARGIN);
-    } while (foodBlocked());
-
+      g.f.x = rand_range(0, g.screen_w - 1);
+      g.f.y = rand_range(1, g.screen_h - 1);
+    } while (food_is_blocked());
     draw_food();
   }
 
-  /* Draw */
-
+  /* Display updated snake position */
   draw_snake();
 }
 
-static void clocked() {
+static void tick() {
   if (!g.running) {
     return;
   }
-
   move();
 }
