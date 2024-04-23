@@ -30,7 +30,7 @@ DATA is the data register port used for transferring data to the controller.
 #define CURSOR_HIGH 14
 #define CURSOR_LOW 15
 
-#define TXT_BUF_BASE 0xb8000 
+#define TXT_BUF_BASE 0xC00B8000
 
 #define ROW_START 2 // Qemu doesn't display first two rows
 #define ROW_END 25

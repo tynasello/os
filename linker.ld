@@ -3,7 +3,7 @@ OUTPUT_FORMAT(binary)
 SECTIONS
 {
   /* Start offset */
-  . = 0x500;
+  . = 0xC0000500;
 
 	.text : 
 	{
