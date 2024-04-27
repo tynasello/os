@@ -45,7 +45,7 @@ void deregister_kb_observer(void* fn){
 /*
 Keyboard IRQ handler
 */
-void kb_handler(struct regs *r) {
+void kb_handler(CpuContext *context) {
   unsigned char scancode = port_byte_in(KB_DATA_PORT);
 
   if (scancode & 0x80) {

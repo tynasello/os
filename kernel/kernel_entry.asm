@@ -50,7 +50,6 @@ global irq13
 global irq14
 global irq15
 
-extern idtp
 extern isr_fault_handler    ; Generic fault handler written in isr.c
 extern irq_handler          ; Generic irq handler written in irq.c
 
@@ -71,10 +70,6 @@ _start:
 ; Interrupt Descriptor Table
 ;
 ;----------------------
-
-idt_load:                   ; Load the IDT defined in 'idtp' and initialized in idt.c
-    lidt [idtp]
-    ret
 
 isr0:                       ; Division Error
     cli                     ; Disable interrupts to prevent IRQs from firing while servicing another interrupt.

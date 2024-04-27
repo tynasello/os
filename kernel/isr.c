@@ -10,10 +10,8 @@ Interrupt Serive Routine
 #include "include/idt.h"
 
 /*
-
 The frist 32 ISR defined in kernel_entry.asm.
 Interrupt numbers 0-31 are reserved by Intel, and are designed to service exceptions.
-
 */
 extern void isr0();
 extern void isr1();
@@ -48,18 +46,12 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 
-/*
- 
-Mapping from interrupt number to exception message
-
-*/
+/* A Mapping from interrupt number to exception message */
 char *exception_messages[32];
 
 /*
- 
-Initialize exception based ISRs:
+ Initialize exception based ISRs:
 Set entries 0-32 in the IDT to exception based ISRs.
-
 */
 void isrs_init() {
   unsigned short ds = 0x08;
@@ -134,46 +126,40 @@ void isrs_init() {
   exception_messages[31] = "Reserved";
 }
 
-/*
- 
-An array of function pointers mapping ISR numbers to handler functions
-
-*/
+/* An array of function pointers mapping ISR numbers to handler functions */
 void *isr_handlers[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-void isr_install_handler(int isr_no, void (*handler)(struct regs *r)) {
+void isr_install_handler(int isr_no, void (*handler)(CpuContext *context)) {
   if (isr_no >= 0 && isr_no <= 31) {
     isr_handlers[isr_no] = handler;
   }
 }
 
 /*
- 
 Generic fault handler called by all exception based ISRs.
 For now, display a message and halt the CPU.
-
 */
-void isr_fault_handler(struct regs *r) {
-  if (r->int_no < 32) {
+void isr_fault_handler(CpuContext *context) {
+  if (context->int_no < 32) {
     print("\nSystem Halted!\n");
 
     print("Exception: ");
-    print(exception_messages[r->int_no]);
+    print(exception_messages[context->int_no]);
     print("\n");
 
     print("Error Code: ");
-    print_hex(r->err_code);
+    print_hex(context->err_code);
     print("\n");
 
     print("IP: ");
-    print_hex(r->eip);
+    print_hex(context->eip);
     print("\n");
 
-    void (*handler)(struct regs *r); // Blank function pointer
-    handler = isr_handlers[r->int_no]; 
+    void (*handler)(CpuContext *context); // Blank function pointer
+    handler = isr_handlers[context->int_no]; 
     if (handler) {
-      handler(r);
+      handler(context);
     }
 
     for (;;) {

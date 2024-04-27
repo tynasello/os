@@ -43,9 +43,9 @@ typedef struct {
   uint8_t* vidmem;
   uint8_t* vidmem_backup;
   uint8_t* pos_backup;
-} screen;
+} Screen;
 
-screen s = {
+Screen s = {
   .x = COL_START,
   .y = 9,
   .vidmem = (uint8_t *)TXT_BUF_BASE,
@@ -57,7 +57,7 @@ static int get_offset(int x, int y) {
   return (y * COL_END + x) * 2; 
 }
 
-static uint8_t get_char_attr(VGATextColor fg, VGATextColor bg){
+static uint8_t get_char_attr(VgaTextColor fg, VgaTextColor bg){
   return (bg << 4) | (fg & 0xF);
 }
 
@@ -96,7 +96,12 @@ static void handle_scrolling() {
     mem_cpy(get_offset(COL_START, y) + s.vidmem, get_offset(COL_START, y-1) + s.vidmem, COL_END * 2);
   }
 
-  mem_set(get_offset(COL_START, ROW_END - 1) + s.vidmem, 0, COL_END * 2);
+  for (int x = 0; x < COL_END; x++){
+    int offset = get_offset(x, ROW_END - 1);
+    *(s.vidmem + offset) = ' ';
+    *(s.vidmem + offset + 1) = get_char_attr(WHITE, BLACK);
+  }
+
   s.x = COL_START;
   s.y = ROW_END - 1;
 }
@@ -107,7 +112,7 @@ Word
 
 */
 
-static void print_char(char c, VGATextColor fg, VGATextColor bg) {
+static void print_char(char c, VgaTextColor fg, VgaTextColor bg) {
   if (c == '\n') {
     s.y++;
     s.x = COL_START;
@@ -126,7 +131,7 @@ static void print_char(char c, VGATextColor fg, VGATextColor bg) {
   handle_scrolling();
 }
 
-void print_at(const char* a, int x, int y, VGATextColor fg, VGATextColor bg) {
+void print_at(const char* a, int x, int y, VgaTextColor fg, VgaTextColor bg) {
   y += ROW_START;
   if (x >= COL_START && x < COL_END) {
     s.x = x;
@@ -150,7 +155,7 @@ Number
 
 */
 
-void print_int_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg) {
+void print_int_at(uint32_t num, int x, int y, VgaTextColor fg, VgaTextColor bg) {
   char num_str[11]; // Buffer to store the converted string. Assume 32-bit integer (10 chars) and null terminator
   itos(num, num_str);
   print_at(num_str, x, y, fg, bg); 
@@ -160,7 +165,7 @@ void print_int(uint32_t num) {
   print_int_at(num, -1, -1, WHITE, BLACK);
 }
 
-void print_hex_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg) {
+void print_hex_at(uint32_t num, int x, int y, VgaTextColor fg, VgaTextColor bg) {
   char num_str[12]; // Assuming a 32-bit integer (8 chars) and null terminator and preceeding '0x' (3 chars)
   htos(num, num_str);
   print_at(num_str, x, y, fg, bg); 
@@ -209,12 +214,12 @@ void screen_restore(){
   set_cursor(s.x, s.y);
 };
 
-void print_square(int x, int y, VGATextColor color) {
+void print_square(int x, int y, VgaTextColor color) {
   print_at(" ", x, y, color, color);
 }
 
 /* Print block from (x1, y1) - (x2, y2) inclusive */
-void print_block(int x1, int y1, int x2, int y2, VGATextColor color){
+void print_block(int x1, int y1, int x2, int y2, VgaTextColor color){
   for (int x = x1; x <= x2; x++){
     for (int y = y1; y <= y2; y++){
       print_square(x, y, color);

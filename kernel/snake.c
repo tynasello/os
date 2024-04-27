@@ -6,34 +6,34 @@
 
 #define INIT_L 5 // Initial length of snake
 
-typedef enum Dir {
+typedef enum {
   UP,
   LEFT,
   DOWN,
   RIGHT,
 } Dir;
 
-typedef struct Food {
+typedef struct {
   int x;
   int y;
-  VGATextColor color;
+  VgaTextColor color;
 } Food;
 
 typedef struct Scale {
   int x;
   int y;
-  VGATextColor color;
+  VgaTextColor color;
   struct Scale *next;
 } Scale;
 
-typedef struct Snake {
+typedef struct {
   Scale *head;
   Scale *tail;
   int len;
   Dir curr_dir;
 } Snake;
 
-typedef struct Game {
+typedef struct {
   int screen_w;
   int screen_h;
   int best_score;

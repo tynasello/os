@@ -22,9 +22,6 @@ Manages and allocated RAM through a page frame allocater
 #define FRAME_SIZE 4096
 #define FRAME_MAP_BITS_PER_ROW 8
 
-/* Set in linker script */
-extern uint32_t endkernel;
-
 /* 
 Bit map where each byte represents status of 8 contiguous frames.
 0 = free, 1 = taken.

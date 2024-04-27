@@ -20,17 +20,17 @@ typedef enum {
     LIGHT_MAGENTA,
     LIGHT_BROWN,
     WHITE,
-} VGATextColor;
+} VgaTextColor;
 
 void enable_cursor();
 void disable_cursor();
 
-void print_at(const char* a, int x, int y, VGATextColor fg, VGATextColor bg);
+void print_at(const char* a, int x, int y, VgaTextColor fg, VgaTextColor bg);
 void print(const char *a);
 
-void print_int_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg);
+void print_int_at(uint32_t num, int x, int y, VgaTextColor fg, VgaTextColor bg);
 void print_int(uint32_t num);
-void print_hex_at(uint32_t num, int x, int y, VGATextColor fg, VGATextColor bg);
+void print_hex_at(uint32_t num, int x, int y, VgaTextColor fg, VgaTextColor bg);
 void print_hex(uint32_t num);
 
 void clear_screen();
@@ -38,7 +38,7 @@ void screen_restore();
 void screen_backup();
 int get_screen_w();
 int get_screen_h();
-void print_square(int x, int y, VGATextColor color);
-void print_block(int x1, int x2, int y1, int y2, VGATextColor color);
+void print_square(int x, int y, VgaTextColor color);
+void print_block(int x1, int x2, int y1, int y2, VgaTextColor color);
 
 #endif

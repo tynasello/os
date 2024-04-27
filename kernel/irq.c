@@ -126,24 +126,24 @@ An array of function pointers mapping IRQ numbers to handler functions
 */
 void *irq_handlers[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-void irq_install_handler(int irq_no, void (*handler)(struct regs *r)) {
+void irq_install_handler(int irq_no, void (*handler)(CpuContext *context)) {
   if (irq_no >= 0 && irq_no <= 15) { // There are only 16 different IRQs
     irq_handlers[irq_no] = handler;
   }
 }
 
-void irq_handler(struct regs *r) {
-  void (*handler)(struct regs *r); // Blank function pointer
-  handler = irq_handlers[r->int_no - 32]; 
+void irq_handler(CpuContext *context) {
+  void (*handler)(CpuContext *context); // Blank function pointer
+  handler = irq_handlers[context->int_no - 32]; 
   if (handler) {
-    handler(r);
+    handler(context);
   }
   /*
   The CPU tells the PIC that the interrupt is complete by writing an EOI byte to the command port. 
   In the case that the interrupt number is greater than 40 (IRQ 8 or higher), then the slave must
   be notified as well as the master.
   */
-  if (r->int_no >= 40) {
+  if (context->int_no >= 40) {
     port_byte_out(SLAVE_CMD_PORT, EOI);
   }
   port_byte_out(MASTER_CMD_PORT, EOI);
