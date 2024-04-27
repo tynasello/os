@@ -12,6 +12,7 @@ The default frequency of the PIT is 18.22 Hz.
 --------------------- 
 */
 
+#include "include/process.h"
 #include "include/screen.h"
 #include "include/irq.h"
 
@@ -56,7 +57,9 @@ void deregister_timer_observer(void* fn){
 /*
 Timer IRQ handler
 */
-void timer_handler(struct regs *r) {
+void timer_handler(CpuContext *context) {
+  schedule(context);
+
   for (int i = 0; i < NUM_OBSERVERS; i++){
     if(observers[i] == 0){
       break;
