@@ -1,4 +1,4 @@
 *.o
 *.bin
-target
+build
 .DS_Store

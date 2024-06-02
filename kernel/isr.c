@@ -1,17 +1,10 @@
-/*
---------------------- 
-
-Interrupt Serive Routine
-
---------------------- 
-*/ 
-
-#include "include/screen.h"
 #include "include/idt.h"
+#include "include/screen.h"
 
 /*
 The frist 32 ISR defined in kernel_entry.asm.
-Interrupt numbers 0-31 are reserved by Intel, and are designed to service exceptions.
+Interrupt numbers 0-31 are reserved by Intel, and are designed to service
+exceptions.
 */
 extern void isr0();
 extern void isr1();
@@ -54,43 +47,38 @@ char *exception_messages[32];
 Set entries 0-32 in the IDT to exception based ISRs.
 */
 void isrs_init() {
-  unsigned short ds = 0x08;
-  unsigned short common_flags = 0x8E; // 10001110: 
-                                      // descriptor is valid (bit 7), DPL is ring 0 (bits 5-6),
-                                      // bit 4 is always 0, gate type is 32-bit interrupt gate (bits 0-3).
-
-  idt_set_entry(0, (uintptr_t)isr0, ds, common_flags);
-  idt_set_entry(1, (uintptr_t)isr1, ds, common_flags);
-  idt_set_entry(2, (uintptr_t)isr2, ds, common_flags);
-  idt_set_entry(3, (uintptr_t)isr3, ds, common_flags);
-  idt_set_entry(4, (uintptr_t)isr4, ds, common_flags);
-  idt_set_entry(5, (uintptr_t)isr5, ds, common_flags);
-  idt_set_entry(6, (uintptr_t)isr6, ds, common_flags);
-  idt_set_entry(7, (uintptr_t)isr7, ds, common_flags);
-  idt_set_entry(8, (uintptr_t)isr8, ds, common_flags);
-  idt_set_entry(9, (uintptr_t)isr9, ds, common_flags);
-  idt_set_entry(10, (uintptr_t)isr10, ds, common_flags);
-  idt_set_entry(11, (uintptr_t)isr11, ds, common_flags);
-  idt_set_entry(12, (uintptr_t)isr12, ds, common_flags);
-  idt_set_entry(13, (uintptr_t)isr13, ds, common_flags);
-  idt_set_entry(14, (uintptr_t)isr14, ds, common_flags);
-  idt_set_entry(15, (uintptr_t)isr15, ds, common_flags);
-  idt_set_entry(16, (uintptr_t)isr16, ds, common_flags);
-  idt_set_entry(17, (uintptr_t)isr17, ds, common_flags);
-  idt_set_entry(18, (uintptr_t)isr18, ds, common_flags);
-  idt_set_entry(19, (uintptr_t)isr19, ds, common_flags);
-  idt_set_entry(20, (uintptr_t)isr20, ds, common_flags);
-  idt_set_entry(21, (uintptr_t)isr21, ds, common_flags);
-  idt_set_entry(22, (uintptr_t)isr22, ds, common_flags);
-  idt_set_entry(23, (uintptr_t)isr23, ds, common_flags);
-  idt_set_entry(24, (uintptr_t)isr24, ds, common_flags);
-  idt_set_entry(25, (uintptr_t)isr25, ds, common_flags);
-  idt_set_entry(26, (uintptr_t)isr26, ds, common_flags);
-  idt_set_entry(27, (uintptr_t)isr27, ds, common_flags);
-  idt_set_entry(28, (uintptr_t)isr28, ds, common_flags);
-  idt_set_entry(29, (uintptr_t)isr29, ds, common_flags);
-  idt_set_entry(30, (uintptr_t)isr30, ds, common_flags);
-  idt_set_entry(31, (uintptr_t)isr31, ds, common_flags);
+  idt_set_gate(0, (uintptr_t)isr0);
+  idt_set_gate(1, (uintptr_t)isr1);
+  idt_set_gate(2, (uintptr_t)isr2);
+  idt_set_gate(3, (uintptr_t)isr3);
+  idt_set_gate(4, (uintptr_t)isr4);
+  idt_set_gate(5, (uintptr_t)isr5);
+  idt_set_gate(6, (uintptr_t)isr6);
+  idt_set_gate(7, (uintptr_t)isr7);
+  idt_set_gate(8, (uintptr_t)isr8);
+  idt_set_gate(9, (uintptr_t)isr9);
+  idt_set_gate(10, (uintptr_t)isr10);
+  idt_set_gate(11, (uintptr_t)isr11);
+  idt_set_gate(12, (uintptr_t)isr12);
+  idt_set_gate(13, (uintptr_t)isr13);
+  idt_set_gate(14, (uintptr_t)isr14);
+  idt_set_gate(15, (uintptr_t)isr15);
+  idt_set_gate(16, (uintptr_t)isr16);
+  idt_set_gate(17, (uintptr_t)isr17);
+  idt_set_gate(18, (uintptr_t)isr18);
+  idt_set_gate(19, (uintptr_t)isr19);
+  idt_set_gate(20, (uintptr_t)isr20);
+  idt_set_gate(21, (uintptr_t)isr21);
+  idt_set_gate(22, (uintptr_t)isr22);
+  idt_set_gate(23, (uintptr_t)isr23);
+  idt_set_gate(24, (uintptr_t)isr24);
+  idt_set_gate(25, (uintptr_t)isr25);
+  idt_set_gate(26, (uintptr_t)isr26);
+  idt_set_gate(27, (uintptr_t)isr27);
+  idt_set_gate(28, (uintptr_t)isr28);
+  idt_set_gate(29, (uintptr_t)isr29);
+  idt_set_gate(30, (uintptr_t)isr30);
+  idt_set_gate(31, (uintptr_t)isr31);
 
   exception_messages[0] = "Division By Zero";
   exception_messages[1] = "Debug";
@@ -157,12 +145,12 @@ void isr_fault_handler(CpuContext *context) {
     print("\n");
 
     void (*handler)(CpuContext *context); // Blank function pointer
-    handler = isr_handlers[context->int_no]; 
+    handler = isr_handlers[context->int_no];
     if (handler) {
       handler(context);
     }
 
-    for (;;) {
+    while (1) {
     }
   }
 }

@@ -5,6 +5,6 @@
 
 void pmm_init();
 uintptr_t alloc_frame();
-void free_frame(uint32_t phys_addr);
+void free_frame(uintptr_t phys_addr);
 
 #endif

@@ -1,38 +1,42 @@
 CC = i686-elf-gcc
-CFLAGS = -ffreestanding -Wall -O0 -nostdlib 
+CFLAGS = -ffreestanding -Wall -O0 -nostdlib
 NASM = nasm
 
-C_SOURCES = $(wildcard kernel/*.c)
-HEADERS = $(wildcard kernel/include/*.h)
-OBJ = ${C_SOURCES:.c=.o}
+BUILD_DIR = build
+SRC_DIR = kernel
+BOOT_DIR = boot
+INCLUDE_DIR = kernel/include
 
-all: target/os-image
+C_SOURCES = $(wildcard $(SRC_DIR)/*.c)
+ASM_SOURCES = $(wildcard $(SRC_DIR)/*.asm)
+HEADERS = $(wildcard $(INCLUDE_DIR)/*.h)
+
+OBJ = $(addprefix $(BUILD_DIR)/, $(notdir ${ASM_SOURCES:.asm=.o} ${C_SOURCES:.c=.o}))
+
+all: $(BUILD_DIR)/os-image
 
 run: all
-	qemu-system-i386 -drive format=raw,file=target/os-image 
+	qemu-system-i386 -drive format=raw,file=$(BUILD_DIR)/os-image
 
-# Build the disk image that the computer loads.
-# This is a combination of the compiled boot sector, kernel, and padding to make the disk image a desired size.
-target/os-image: boot/boot_sect.bin kernel/kernel.bin boot/pad.bin
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Build the disk image that the computer loads. This is a combination of the compiled boot sector, kernel, and padding to make the disk image a desired size.
+$(BUILD_DIR)/os-image: $(BUILD_DIR)/boot_sect.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/pad.bin
 	cat $^ > $@
 
 # Kernel binary
-# - ffrestanding implies no standard library exists (only a subset of C library with #define and typedefs only).
-#   This is important as the compiler is building a kernel rather than user-space program. 
-# - nostdlib removes some start files that should only be for user space programs.
-# - lgcc expands to the full path of libgcc that only the compiler knows about. It was originally excluded by nostdlib.
-kernel/kernel.bin: kernel/kernel_entry.o ${OBJ}
+$(BUILD_DIR)/kernel.bin: $(BUILD_DIR)/kernel_entry.o ${OBJ}
 	$(CC) -T linker.ld $(CFLAGS) $^ -o $@ -lgcc
 
-%.o: %.c ${HEADERS}
-	$(CC) $(CFLAGS) -c  $< -o $@ -lgcc
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c ${HEADERS} | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -lgcc
 
-kernel/kernel_entry.o: kernel/kernel_entry.asm
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.asm | $(BUILD_DIR)
 	${NASM} $< -f elf -o $@
 
-# Boot sector 
-%.bin: %.asm
-	${NASM} $< -f bin -i 'boot' -o $@
+$(BUILD_DIR)/%.bin: $(BOOT_DIR)/%.asm | $(BUILD_DIR)
+	${NASM} $< -f bin -i '$(BOOT_DIR)' -o $@
 
 clean:
-	rm -fr target/* kernel/*.bin kernel/*.o boot/*.bin
+	rm -fr $(BUILD_DIR)

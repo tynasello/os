@@ -1,62 +1,78 @@
-/*
---------------------- 
-
-Interrupt Descriptor Table
-
---------------------- 
-*/ 
-
+#include "include/idt.h"
+#include "include/memory.h"
 #include "include/screen.h"
-#include "include/system.h"
 #include "stdint.h"
 #include <stdint.h>
 
-struct idt_entry {
-  /* The address of the ISR that the processor will call when this interrupt is raised */
-  uint16_t offset_low; 
-  /* The segment the ISR is located in. Must point to a valid code segment defined in GDT. */
-  uint16_t seg_sel; 
+typedef struct {
+  uint16_t offset_low; // The address of the ISR that the processor will call
+                       // when this interrupt is raised
+  uint16_t seg_sel; // The segment the ISR is located in. Must point to a valid
+                    // code segment defined in GDT.
   uint8_t reserved; // Reserved for processor
-  /*
-  Gate type (bits 0-3, 0xE represents a 32-bit interrupt gate).
-  Bit 4 is always 0. 
-  DPL (bits 5-6, defines highest CPU privilege level (ring) which is aloud to access this interrupt via 'int' opcode). 
-  Present (bit 7, set to 1 if descriptor is valid).
-  */
-  uint8_t flags; 
+  /* Gate type (bits 0-3, 0xE represents a 32-bit interrupt gate).
+  Bit 4 is always 0.
+  DPL (bits 5-6, defines highest CPU privilege level (ring) which is aloud to
+  access this interrupt via 'int' opcode). Present (bit 7, set to 1 if
+  descriptor is valid). */
+  uint8_t flags;
   uint16_t offset_high;
-} __attribute__((packed));
+} __attribute__((packed)) InterruptGateDescriptor;
 
-/*
-The location of the IDT is stored in the IDTR (IDT register). This is loaded
-using the 'lidt' assembly instruction, whose argument is a pointer to an IDT
-Descriptor structure defined below:
-*/
-struct idt_ptr {
-  uint16_t size;            // One less than size of IDT in bytes
-  uintptr_t offset;         // Address of the IDT
-} __attribute__((packed));
+typedef struct {
+  uint16_t limit;
+  uintptr_t base_addr;
+} __attribute__((packed)) IdtDescriptor;
 
-struct idt_entry idt[256]; 
-struct idt_ptr idtp;
+InterruptGateDescriptor idt[256];
+IdtDescriptor idt_descriptor;
 
-void idt_set_entry(unsigned char idt_num, unsigned int offset, unsigned short seg_sel, unsigned char flags) {
-  struct idt_entry entry;
-  entry.offset_low = offset;
-  entry.offset_high = offset >> 16;
-  entry.seg_sel = seg_sel;
+void idt_set_gate(uint8_t int_vec_num, uint32_t isr) {
+  InterruptGateDescriptor entry;
+  entry.offset_low = isr;
+  entry.offset_high = isr >> 16;
+  entry.seg_sel = 0x8; // CS
   entry.reserved = 0x0;
-  entry.flags = flags;
-  idt[idt_num] = entry;
+  entry.flags = 0x8E; // 10001110
+  idt[int_vec_num] = entry;
 }
 
-/*
-Initialize IDT pointer, and load IDT initialized with zeroes
-*/
+/* Initialize IDT pointer, and load IDT initialized with zeroes (256
+ * descriptors) */
 void idt_init() {
-  idtp.size = (sizeof(struct idt_entry) * 256) - 1;
-  idtp.offset = (uintptr_t)&idt;
-  mem_set((unsigned char *)&idt, 0, sizeof(struct idt_entry) * 256); 
-  __asm__ __volatile__("lidt (%0)" : : "r" ((uintptr_t)&idtp));
+  idt_descriptor.limit = (sizeof(InterruptGateDescriptor) * 256) - 1;
+  idt_descriptor.base_addr = (uintptr_t)&idt;
+  mem_set((unsigned char *)&idt, 0, sizeof(InterruptGateDescriptor) * 256);
+  __asm__ __volatile__("lidt (%0)" : : "r"((uintptr_t)&idt_descriptor));
 }
 
+void print_cpu_context(CpuContext *context) {
+  print("edi: ");
+  print_hex(context->edi);
+  print(", esi: ");
+  print_hex(context->esi);
+  print(", ebp: ");
+  print_hex(context->ebp);
+  print(", esp: ");
+  print_hex(context->esp);
+  print(", ebx: ");
+  print_hex(context->ebx);
+  print(", edx: ");
+  print_hex(context->edx);
+  print(", ecx: ");
+  print_hex(context->ecx);
+  print(", eax: ");
+  print_hex(context->eax);
+  print(", ");
+  print("int_no: ");
+  print_hex(context->int_no);
+  print(", err_code: ");
+  print_hex(context->err_code);
+  print(", ");
+  print("eip: ");
+  print_hex(context->eip);
+  print(", cs: ");
+  print_hex(context->cs);
+  print(", eflags: ");
+  print_hex(context->eflags);
+}

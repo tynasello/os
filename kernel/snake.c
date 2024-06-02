@@ -1,6 +1,6 @@
 #include "include/kb.h"
+#include "include/random.h"
 #include "include/screen.h"
-#include "include/system.h"
 #include "include/timer.h"
 #include "include/vmm.h"
 
@@ -46,7 +46,6 @@ typedef struct {
 
 static Game g;
 
-static void tick();
 static void user_in(char pressed);
 
 /*
@@ -63,89 +62,28 @@ void draw_snake() {
   }
 }
 
-void draw_food() { 
-  print_square(g.f.x, g.f.y, g.f.color); 
-}
+void draw_food() { print_square(g.f.x, g.f.y, g.f.color); }
 
-void draw_border(){
-  print_block(0, 0, g.screen_w - 1, 0, WHITE);
-}
+void draw_border() { print_block(0, 0, g.screen_w - 1, 0, WHITE); }
 
-void draw_best_score(){
+void draw_best_score() {
   print_at("BEST: ", 2, 0, BLACK, WHITE);
   print_int_at(g.best_score, 7, 0, BLACK, WHITE);
 }
 
-void draw_score() { 
-  print_int_at(g.curr_score, g.screen_w - 3, 0, BLACK, WHITE); 
+void draw_score() {
+  print_int_at(g.curr_score, g.screen_w - 3, 0, BLACK, WHITE);
 }
 
 /*
 
-Game Setup
+Game Play
 
 */
 
-static void init_game() {
-  /* Initialize game structures */
-  Scale *head = (Scale *)kmalloc(sizeof(Scale));
-  Scale *tail;
-  head->color = RED;
-  head->x = 15;
-  head->y = 15;
+void init_game();
 
-  Scale *curr = head;
-  for (int i = 0; i < INIT_L - 1; i++) {
-    Scale *scale = (Scale *)kmalloc(sizeof(Scale));
-    scale->color = GREEN;
-    scale->x = curr->x;
-    scale->y = curr->y - 1;
-    curr->next = scale;
-    curr = curr->next;
-    tail = scale;
-  }
-
-  Snake s = {
-    .head = head, 
-    .tail = tail, 
-    .len = INIT_L, 
-    .curr_dir = DOWN
-  };
-
-  Food f = {
-    .x = g.screen_w / 2, 
-    .y = g.screen_h / 2, 
-    .color = WHITE 
-  };
-
-  g.s = s;
-  g.f = f;
-  g.curr_score = 0;
-
-  /* Initialize display */
-  clear_screen();
-  draw_border();
-  draw_best_score();
-  draw_score();
-  draw_snake();
-  draw_food();
-}
-
-void snake_start() {
-  disable_cursor();
-  screen_backup();
-  g.screen_w = get_screen_w();
-  g.screen_h = get_screen_h();
-  g.running = 0;
-  g.quitted = 0;
-  g.best_score = 0;
-  g.curr_score = 0;
-  init_game();
-  register_timer_observer(&tick, 0);
-  register_kb_observer(&user_in);
-}
-
-static void game_over() {
+void game_over() {
   g.running = 0;
 
   Scale *curr = g.s.head;
@@ -157,25 +95,18 @@ static void game_over() {
   }
 
   if (g.quitted) {
-    deregister_timer_observer(&tick);
     deregister_kb_observer(&user_in);
     screen_restore();
     enable_cursor();
     print("Game Over");
     return;
-  } 
+  }
 
   g.best_score = g.curr_score > g.best_score ? g.curr_score : g.best_score;
   init_game();
 
   return;
 }
-
-/*
- 
-Game Play
-
-*/
 
 static void user_in(char pressed) {
   if (pressed != 'w' && pressed != 'a' && pressed != 's' && pressed != 'd' &&
@@ -194,11 +125,11 @@ static void user_in(char pressed) {
   }
 
   g.running = 1;
-  g.s.curr_dir = pressed == 'w' ? UP
-               : pressed == 'a' ? LEFT
-               : pressed == 's' ? DOWN
-               : pressed == 'd' ? RIGHT
-               : g.s.curr_dir;
+  g.s.curr_dir = pressed == 'w'   ? UP
+                 : pressed == 'a' ? LEFT
+                 : pressed == 's' ? DOWN
+                 : pressed == 'd' ? RIGHT
+                                  : g.s.curr_dir;
 }
 
 static int food_is_blocked() {
@@ -233,24 +164,24 @@ static void move() {
   }
 
   /* Move head */
-  switch (g.s.curr_dir){
-    case UP:
-      g.s.head->y--;
-      break;
-    case LEFT:
-      g.s.head->x--;
-      break;
-    case DOWN:
-      g.s.head->y++;
-      break;
-    case RIGHT:
-      g.s.head->x++;
-      break;
+  switch (g.s.curr_dir) {
+  case UP:
+    g.s.head->y--;
+    break;
+  case LEFT:
+    g.s.head->x--;
+    break;
+  case DOWN:
+    g.s.head->y++;
+    break;
+  case RIGHT:
+    g.s.head->x++;
+    break;
   }
 
   /* Check for border collision */
-  if (g.s.head->x < 0 || g.s.head->x >= g.screen_w ||
-      g.s.head->y < 1 || g.s.head->y >= g.screen_h) {
+  if (g.s.head->x < 0 || g.s.head->x >= g.screen_w || g.s.head->y < 1 ||
+      g.s.head->y >= g.screen_h) {
     game_over();
     return;
   }
@@ -280,7 +211,7 @@ static void move() {
 
     do {
       g.f.x = rand_range(0, g.screen_w - 1);
-      g.f.y = rand_range(1, g.screen_h - 1);
+      g.f.y = rand_range(1, g.screen_h - 2);
     } while (food_is_blocked());
     draw_food();
   }
@@ -289,9 +220,63 @@ static void move() {
   draw_snake();
 }
 
-static void tick() {
-  if (!g.running) {
-    return;
+/*
+
+Game Setup
+
+*/
+
+void init_game() {
+  /* Initialize game structures */
+  Scale *head = (Scale *)kmalloc(sizeof(Scale));
+  Scale *tail;
+  head->color = RED;
+  head->x = 15;
+  head->y = 15;
+
+  Scale *curr = head;
+  for (int i = 0; i < INIT_L - 1; i++) {
+    Scale *scale = (Scale *)kmalloc(sizeof(Scale));
+    scale->color = GREEN;
+    scale->x = curr->x;
+    scale->y = curr->y - 1;
+    curr->next = scale;
+    curr = curr->next;
+    tail = scale;
   }
-  move();
+
+  Snake s = {.head = head, .tail = tail, .len = INIT_L, .curr_dir = DOWN};
+
+  Food f = {.x = g.screen_w / 2, .y = g.screen_h / 2, .color = WHITE};
+
+  g.s = s;
+  g.f = f;
+  g.curr_score = 0;
+
+  /* Initialize display */
+  clear_screen();
+  draw_border();
+  draw_best_score();
+  draw_score();
+  draw_snake();
+  draw_food();
+}
+
+void snake_start() {
+  disable_cursor();
+  screen_backup();
+  g.screen_w = get_screen_w();
+  g.screen_h = get_screen_h();
+  g.running = 0;
+  g.quitted = 0;
+  g.best_score = 0;
+  g.curr_score = 0;
+  init_game();
+  register_kb_observer(&user_in);
+  while (!g.quitted) {
+    timer_wait(0.01);
+    if (g.running) {
+      move();
+    }
+  }
 }

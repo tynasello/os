@@ -4,8 +4,7 @@
 #include "include/kb.h"
 #include "include/pmm.h"
 #include "include/screen.h"
-#include "include/snake.h"
-#include "include/system.h"
+#include "include/test.h"
 #include "include/timer.h"
 #include "include/vmm.h"
 
@@ -38,21 +37,8 @@ void kmain() {
   __asm__ __volatile__("sti"); // Re-enable interrups after the IDT and
                                // interrupt handlers have been initialized
 
-  print("                         ,----..                   \n");
-  print("     ___                /   /   \\   .--.--.       \n");
-  print("   ,--.'|_             /   .     : /  /    '.      \n");
-  print("   |  | :,'           .   /   ;.  \\  :  /`. /     \n");
-  print("   :  : ' :          .   ;   /  ` ;  |  |--`       \n");
-  print(" .;__,'  /       .--,;   |  ; \\ ; |  :  ;_        \n");
-  print(" |  |   |      /_ ./||   :  | ; | '\\  \\    `.    \n");
-  print(" :__,'| :   , ' , ' :.   |  ' ' ' : `----.   \\    \n");
-  print("   '  : |__/___/ \\: |'   ;  \\; /  | __ \\  \\  | \n");
-  print("   |  | '.'|.  \\  ' | \\   \\  ',  / /  /`--'  /  \n");
-  print("   ;  :    ; \\  ;   :  ;   :    / '--'.     /     \n");
-  print("   |  ,   /   \\  \\  ;   \\   \\ .'    `--'---'   \n");
-  print("    ---`-'     :  \\  \\   `---`                   \n");
-  print("                \\  ' ;                            \n");
-  print("                 `--`                              \n");
+  test_vm();
 
-  // snake_start();
+  while (1) {
+  }
 }
